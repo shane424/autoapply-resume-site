@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Settings — AutoApply{% endblock %}
+
+{% block content %}
+<h2>Settings</h2>
+<div id="save-status"></div>
+
+<form id="settings-form">
+
+  <article>
+    <header><strong>LLM Provider</strong></header>
+    <fieldset id="llm-provider-group">
+      <legend>Which LLM should tailor your resume?</legend>
+      <label>
+        <input type="radio" name="llm_provider" value="claude" />
+        Claude (Anthropic API)
+      </label>
+      <label>
+        <input type="radio" name="llm_provider" value="ollama" />
+        Ollama (local model)
+      </label>
+    </fieldset>
+    <div id="ollama-settings" style="display:none; margin-top:0.5rem;">
+      <label>Ollama model name
+        <input type="text" id="ollama-model" name="ollama_model" placeholder="llama3.2" />
+      </label>
+      <label>Ollama base URL
+        <input type="text" id="ollama-base-url" name="ollama_base_url" placeholder="http://localhost:11434" />
+      </label>
+    </div>
+  </article>
+
+  <article>
+    <header><strong>Job Search Filters</strong></header>
+    <label>Keywords (comma-separated)
+      <input type="text" id="filter-keywords" name="filter_keywords" placeholder="Python, FastAPI, remote" />
+    </label>
+    <label>Target roles (comma-separated)
+      <input type="text" id="filter-roles" name="filter_roles" placeholder="Software Engineer, Backend Developer" />
+    </label>
+    <label>Exclude keywords (comma-separated)
+      <input type="text" id="filter-exclude" name="filter_exclude" placeholder="Senior only, 10+ years" />
+    </label>
+    <label>
+      <input type="checkbox" id="filter-remote" name="filter_remote" />
+      Remote positions only
+    </label>
+  </article>
+
+  <article>
+    <header><strong>Apply Settings</strong></header>
+    <label>Default apply mode
+      <select id="default-mode" name="default_mode">
+        <option value="semiauto">Semi-auto (open in browser)</option>
+        <option value="auto">Full auto (Playwright)</option>
+      </select>
+    </label>
+  </article>
+
+  <article>
+    <header><strong>Your Profile</strong> <small>(used for auto-apply form filling)</small></header>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <label>First name <input type="text" id="p-first" name="first_name" /></label>
+      <label>Last name <input type="text" id="p-last" name="last_name" /></label>
+    </div>
+    <label>Email <input type="email" id="p-email" name="email" /></label>
+    <label>Phone <input type="tel" id="p-phone" name="phone" /></label>
+    <label>LinkedIn URL <input type="url" id="p-linkedin" name="linkedin" /></label>
+    <label>Website / Portfolio <input type="url" id="p-website" name="website" /></label>
+    <label>Cover letter template <small>(leave blank to skip)</small>
+      <textarea id="p-cover" name="cover_letter_template" rows="4"></textarea>
+    </label>
+  </article>
+
+  <button type="submit">Save Settings</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/settings.js"></script>
+{% endblock %}

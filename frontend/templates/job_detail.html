@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Job Detail — AutoApply{% endblock %}
+
+{% block content %}
+<div id="job-detail-container">
+  <p aria-busy="true">Loading job…</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const JOB_ID = {{ job_id | tojson }};
+</script>
+<script src="/static/js/jobs.js"></script>
+<script>
+  // Load single job detail view
+  (async () => {
+    const res = await fetch(`/api/jobs/${JOB_ID}`);
+    if (!res.ok) {
+      document.getElementById('job-detail-container').innerHTML = '<p>Job not found.</p>';
+      return;
+    }
+    const job = await res.json();
+    renderJobDetail(job);
+  })();
+
+  function renderJobDetail(job) {
+    const container = document.getElementById('job-detail-container');
+    container.innerHTML = `
+      <nav aria-label="breadcrumb"><a href="/">← Back to Jobs</a></nav>
+      <h2>${escHtml(job.title)}</h2>
+      <p><strong>${escHtml(job.company)}</strong> &middot; <span class="source-badge">${escHtml(job.source)}</span>
+        ${job.salary ? ` &middot; ${escHtml(job.salary)}` : ''}
+      </p>
+      <div>${job.tags.map(t => `<kbd>${escHtml(t)}</kbd>`).join(' ')}</div>
+
+      <article>
+        <header><strong>Job Description</strong></header>
+        <pre style="white-space:pre-wrap;word-break:break-word">${escHtml(job.description)}</pre>
+      </article>
+
+      <article id="action-card">
+        <header><strong>Actions</strong></header>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+          <button id="tailor-btn" onclick="tailorJob('${job.id}')">Tailor Resume</button>
+          <button class="secondary" onclick="applyJob('${job.id}','auto')">Auto Apply</button>
+          <button class="secondary outline" onclick="applyJob('${job.id}','semiauto')">Open in Browser</button>
+          <a href="${escHtml(job.apply_url)}" target="_blank" rel="noopener" role="button" class="contrast outline">View Posting ↗</a>
+        </div>
+        <div id="tailor-status" style="margin-top:1rem;"></div>
+        <div id="apply-status" style="margin-top:0.5rem;"></div>
+        <div id="download-links" style="margin-top:1rem;"></div>
+      </article>
+    `;
+  }
+
+  function escHtml(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  async function tailorJob(jobId) {
+    document.getElementById('tailor-status').innerHTML = '<span aria-busy="true">Tailoring resume…</span>';
+    document.getElementById('download-links').innerHTML = '';
+    const res = await fetch(`/api/tailor/${jobId}`, {method:'POST'});
+    const data = await res.json();
+    if (!res.ok) {
+      document.getElementById('tailor-status').innerHTML = `<span style="color:red">Error: ${escHtml(data.detail)}</span>`;
+      return;
+    }
+    pollTailorStatus(jobId);
+  }
+
+  async function pollTailorStatus(jobId) {
+    const statusEl = document.getElementById('tailor-status');
+    const linksEl = document.getElementById('download-links');
+    const interval = setInterval(async () => {
+      const res = await fetch(`/api/tailor/${jobId}/status`);
+      const data = await res.json();
+      if (data.status === 'done') {
+        clearInterval(interval);
+        statusEl.innerHTML = `<ins>Resume tailored! Keywords added: ${data.keywords_added ? data.keywords_added.map(k => `<kbd>${escHtml(k)}</kbd>`).join(' ') : 'none'}</ins>`;
+        linksEl.innerHTML = `
+          <a href="/storage/tailored/${jobId}/resume.pdf" download role="button" class="outline">Download PDF</a>
+          <a href="/storage/tailored/${jobId}/resume.docx" download role="button" class="outline" style="margin-left:0.5rem">Download DOCX</a>
+        `;
+      } else if (data.status === 'failed') {
+        clearInterval(interval);
+        statusEl.innerHTML = `<del>Tailoring failed: ${escHtml(data.error)}</del>`;
+      } else {
+        statusEl.innerHTML = '<span aria-busy="true">Tailoring…</span>';
+      }
+    }, 1500);
+  }
+
+  async function applyJob(jobId, mode) {
+    const statusEl = document.getElementById('apply-status');
+    statusEl.innerHTML = `<span aria-busy="true">Submitting (${mode} mode)…</span>`;
+    const res = await fetch(`/api/apply/${jobId}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({mode})
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      statusEl.innerHTML = `<span style="color:red">Error: ${escHtml(data.detail)}</span>`;
+      return;
+    }
+    if (mode === 'semiauto') {
+      statusEl.innerHTML = '<ins>Job URL opened in your browser.</ins>';
+    } else {
+      pollApplyStatus(jobId);
+    }
+  }
+
+  async function pollApplyStatus(jobId) {
+    const statusEl = document.getElementById('apply-status');
+    const interval = setInterval(async () => {
+      const res = await fetch(`/api/apply/${jobId}/status`);
+      const data = await res.json();
+      if (data.status === 'applied') {
+        clearInterval(interval);
+        statusEl.innerHTML = '<ins>Application submitted!</ins>';
+      } else if (data.status === 'failed') {
+        clearInterval(interval);
+        statusEl.innerHTML = `<del>Auto-apply failed: ${escHtml(data.error)}. Try opening in browser instead.</del>`;
+      } else if (data.status === 'running') {
+        statusEl.innerHTML = '<span aria-busy="true">Playwright is filling the form…</span>';
+      }
+    }, 2000);
+  }
+</script>
+{% endblock %}

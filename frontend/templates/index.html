@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Jobs — AutoApply{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+  <h2 style="margin:0">Job Listings</h2>
+  <div style="display:flex; gap:0.5rem; align-items:center;">
+    <input type="search" id="search-input" placeholder="Filter by keyword…" style="margin:0; width:200px;" />
+    <button id="refresh-btn">Refresh Jobs</button>
+  </div>
+</div>
+
+<div id="status-bar" style="margin-top:0.5rem;"></div>
+
+<div id="jobs-container" style="margin-top:1rem;">
+  <p id="no-jobs-msg">Click <strong>Refresh Jobs</strong> to load listings from RemoteOK and We Work Remotely.</p>
+  <table id="jobs-table" style="display:none">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Company</th>
+        <th>Source</th>
+        <th>Tags</th>
+        <th>Actions</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="jobs-tbody"></tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/jobs.js"></script>
+{% endblock %}
