@@ -3,20 +3,15 @@ from pathlib import Path
 from app.models.resume import ParsedResume, ExperienceEntry, EducationEntry
 
 
-SECTION_HEADERS = {
-    "summary": re.compile(r"^\s*(summary|professional summary|objective|profile)\s*$", re.IGNORECASE),
-    "experience": re.compile(r"^\s*(experience|work experience|employment|employment history|work history)\s*$", re.IGNORECASE),
-    "skills": re.compile(r"^\s*(skills|technical skills|core competencies|competencies|technologies)\s*$", re.IGNORECASE),
-    "education": re.compile(r"^\s*(education|academic background|academic history)\s*$", re.IGNORECASE),
-}
-
-
 def _extract_text_from_pdf(path: Path) -> str:
     import pdfplumber
     text_parts = []
     with pdfplumber.open(str(path)) as pdf:
         for page in pdf.pages:
-            t = page.extract_text()
+            # layout=True uses positional info to better handle multi-column layouts
+            t = page.extract_text(layout=True)
+            if not t:
+                t = page.extract_text()
             if t:
                 text_parts.append(t)
     return "\n".join(text_parts)
@@ -29,9 +24,20 @@ def _extract_text_from_docx(path: Path) -> str:
 
 
 def _detect_section(line: str) -> str | None:
-    for section, pattern in SECTION_HEADERS.items():
-        if pattern.match(line):
-            return section
+    """Flexible section detection — matches as long as the key word appears in a short heading line."""
+    stripped = line.strip()
+    if not stripped or len(stripped) > 80:
+        return None
+    lower = stripped.lower()
+
+    if re.search(r'\b(summary|professional summary|objective|profile)\b', lower):
+        return "summary"
+    if re.search(r'\b(work experience|experience|employment|work history)\b', lower):
+        return "experience"
+    if re.search(r'\b(skills|competencies|technologies)\b', lower):
+        return "skills"
+    if re.search(r'\b(education|academic)\b', lower):
+        return "education"
     return None
 
 
@@ -69,49 +75,100 @@ def _extract_contact(header_lines: list[str]) -> dict:
     linkedin_m = linkedin_re.search(full_text)
     if linkedin_m:
         contact["linkedin"] = linkedin_m.group()
-    # First non-empty, non-contact line is likely the name
+
     for line in header_lines:
         line = line.strip()
-        if line and not email_re.search(line) and not linkedin_re.search(line):
+        if line and not email_re.search(line) and not linkedin_re.search(line) and not phone_re.fullmatch(line):
             contact["name"] = line
             break
     return contact
 
 
+# Matches date ranges like "11/2024 - 11/2025", "Jan 2020 - Present", "2018 - 2020"
+DATE_RANGE_RE = re.compile(
+    r"(\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?\s*\d{4}\s*[-–]\s*(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?\s*(?:\d{4}|present|current)|\d{2}/\d{4}\s*[-–]\s*\d{2}/\d{4})",
+    re.IGNORECASE,
+)
+BULLET_RE = re.compile(r"^[\s]*[•●\-\*–]\s*")
+
+
+def _is_bullet(line: str) -> bool:
+    return bool(BULLET_RE.match(line))
+
+
+def _clean_bullet(line: str) -> str:
+    return BULLET_RE.sub("", line).strip()
+
+
 def _parse_experience(lines: list[str]) -> list[ExperienceEntry]:
     entries: list[ExperienceEntry] = []
     current: dict | None = None
-    date_re = re.compile(r"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{4}|present|current)", re.IGNORECASE)
+    seen_bullets: set[str] = set()  # deduplicate repeated bullets (multi-column artifact)
 
     for line in lines:
         stripped = line.strip()
         if not stripped:
             continue
-        # Heuristic: line with a date pattern and no leading bullet is a job header
-        if date_re.search(stripped) and not stripped.startswith(("•", "-", "*", "–")):
+
+        date_match = DATE_RANGE_RE.search(stripped)
+
+        if date_match and not _is_bullet(stripped):
+            # This looks like a job header line: "Title   Company   Date"
+            # Save the previous entry
             if current:
                 entries.append(ExperienceEntry(**current))
-            current = {"title": stripped, "company": "", "dates": stripped, "bullets": []}
-        elif stripped.startswith(("•", "-", "*", "–")) and current:
-            current["bullets"].append(stripped.lstrip("•-*– ").strip())
-        elif current and not current["company"]:
-            current["company"] = stripped
+            seen_bullets = set()
+
+            dates = date_match.group().strip()
+            # Remove the date range from the line to get "Title   Company"
+            remainder = DATE_RANGE_RE.sub("", stripped).strip().strip("—–-").strip()
+
+            # Split remainder into title and company by whitespace gap or known separator
+            # Try splitting on 2+ consecutive spaces or a dash/em-dash
+            parts = re.split(r"\s{2,}|—|–", remainder)
+            parts = [p.strip() for p in parts if p.strip()]
+
+            if len(parts) >= 2:
+                title = parts[0]
+                company = parts[1]
+            elif len(parts) == 1:
+                title = parts[0]
+                company = ""
+            else:
+                title = remainder
+                company = ""
+
+            current = {"title": title, "company": company, "dates": dates, "bullets": []}
+
+        elif _is_bullet(stripped) and current is not None:
+            bullet = _clean_bullet(stripped)
+            if bullet and bullet not in seen_bullets:
+                seen_bullets.add(bullet)
+                current["bullets"].append(bullet)
+
+        elif current is not None and not current["company"] and not _is_bullet(stripped):
+            # Second line after header — likely the company name if not captured
+            if not DATE_RANGE_RE.search(stripped):
+                current["company"] = stripped
 
     if current:
         entries.append(ExperienceEntry(**current))
+
     return entries
 
 
 def _parse_skills(lines: list[str]) -> list[str]:
     skills = []
+    seen = set()
     for line in lines:
         line = line.strip()
         if not line:
             continue
-        # Skills are often comma or pipe separated
-        for skill in re.split(r"[,|•]", line):
-            skill = skill.strip().lstrip("-*•– ")
-            if skill:
+        # Skills are often comma, pipe, or bullet separated
+        for skill in re.split(r"[,|•●]", line):
+            skill = skill.strip().lstrip("-*•●– ")
+            if skill and skill not in seen:
+                seen.add(skill)
                 skills.append(skill)
     return skills
 
@@ -120,6 +177,7 @@ def _parse_education(lines: list[str]) -> list[EducationEntry]:
     entries = []
     year_re = re.compile(r"\b(19|20)\d{2}\b")
     current: dict | None = None
+
     for line in lines:
         stripped = line.strip()
         if not stripped:
@@ -127,9 +185,11 @@ def _parse_education(lines: list[str]) -> list[EducationEntry]:
         if year_re.search(stripped):
             if current:
                 entries.append(EducationEntry(**current))
-            current = {"degree": stripped, "school": "", "year": year_re.search(stripped).group()}
+            year = year_re.findall(stripped)[0]
+            current = {"degree": stripped, "school": "", "year": year}
         elif current and not current["school"]:
             current["school"] = stripped
+
     if current:
         entries.append(EducationEntry(**current))
     return entries
