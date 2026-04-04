@@ -1,0 +1,11 @@
+You are a technical recruiter. Extract the most important technical keywords, skills, and requirements from the job description below.
+
+Return ONLY a valid JSON array of strings (10-15 items max). No explanation, no markdown, just the JSON array.
+
+Example output: ["Python", "FastAPI", "PostgreSQL", "REST APIs", "Docker"]
+
+Job Title: {{ job.title }}
+Company: {{ job.company }}
+
+Job Description:
+{{ job.description }}

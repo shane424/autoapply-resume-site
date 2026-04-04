@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Liberation Serif", "Georgia", serif;
+    font-size: 10pt;
+    color: #111;
+    padding: 20mm 18mm;
+    line-height: 1.45;
+  }
+  h1 { font-size: 18pt; margin-bottom: 2pt; }
+  h2 { font-size: 11pt; text-transform: uppercase; letter-spacing: 1px;
+       border-bottom: 1px solid #333; margin: 12pt 0 5pt; padding-bottom: 2pt; }
+  h3 { font-size: 10pt; font-weight: bold; margin-bottom: 1pt; }
+  .contact { font-size: 9pt; color: #444; margin-bottom: 8pt; }
+  .contact span::after { content: " · "; }
+  .contact span:last-child::after { content: ""; }
+  p { margin-bottom: 4pt; }
+  ul { margin: 3pt 0 5pt 14pt; }
+  li { margin-bottom: 1pt; }
+  .exp-header { display: flex; justify-content: space-between; }
+  .exp-company { font-style: italic; }
+  .skills-list { display: flex; flex-wrap: wrap; gap: 4pt; }
+  .skill-tag { background: #f0f0f0; padding: 1pt 5pt; border-radius: 3pt; font-size: 9pt; }
+</style>
+</head>
+<body>
+
+<h1>{{ contact.get("name", "") }}</h1>
+<div class="contact">
+  {% if contact.get("email") %}<span>{{ contact["email"] }}</span>{% endif %}
+  {% if contact.get("phone") %}<span>{{ contact["phone"] }}</span>{% endif %}
+  {% if contact.get("linkedin") %}<span>{{ contact["linkedin"] }}</span>{% endif %}
+</div>
+
+{% if summary %}
+<h2>Summary</h2>
+<p>{{ summary }}</p>
+{% endif %}
+
+{% if skills %}
+<h2>Skills</h2>
+<div class="skills-list">
+  {% for skill in skills %}<span class="skill-tag">{{ skill }}</span>{% endfor %}
+</div>
+{% endif %}
+
+{% if experience %}
+<h2>Experience</h2>
+{% for exp in experience %}
+<div style="margin-bottom:8pt">
+  <div class="exp-header">
+    <h3>{{ exp.title }}</h3>
+    <span style="font-size:9pt;color:#555">{{ exp.dates }}</span>
+  </div>
+  <div class="exp-company">{{ exp.company }}</div>
+  {% if exp.bullets %}
+  <ul>
+    {% for bullet in exp.bullets %}<li>{{ bullet }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% endfor %}
+{% endif %}
+
+{% if education %}
+<h2>Education</h2>
+{% for edu in education %}
+<div style="margin-bottom:5pt">
+  <div class="exp-header">
+    <h3>{{ edu.degree }}</h3>
+    <span style="font-size:9pt;color:#555">{{ edu.year }}</span>
+  </div>
+  <div class="exp-company">{{ edu.school }}</div>
+</div>
+{% endfor %}
+{% endif %}
+
+</body>
+</html>

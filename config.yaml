@@ -1,0 +1,26 @@
+llm:
+  provider: "claude"                   # "claude" or "ollama"
+  claude_model: "claude-3-5-haiku-20241022"
+  ollama_model: "llama3.2"
+  ollama_base_url: "http://localhost:11434"
+
+filters:
+  keywords:
+    - "Python"
+    - "remote"
+  roles:
+    - "Software Engineer"
+  exclude_keywords: []
+  remote_only: true
+
+apply:
+  default_mode: "semiauto"             # "auto" or "semiauto"
+
+user_profile:
+  first_name: ""
+  last_name: ""
+  email: ""
+  phone: ""
+  linkedin: ""
+  website: ""
+  cover_letter_template: ""

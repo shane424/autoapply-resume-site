@@ -1,0 +1,54 @@
+/* AutoApply custom styles */
+:root {
+  --spacing: 1rem;
+}
+
+header nav {
+  padding: 0.5rem 0;
+}
+
+.source-badge {
+  background: var(--pico-primary-background);
+  color: var(--pico-primary-inverse);
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.8em;
+  text-transform: uppercase;
+}
+
+#jobs-table {
+  width: 100%;
+  font-size: 0.9em;
+}
+
+#jobs-table td {
+  vertical-align: middle;
+}
+
+.status-badge {
+  display: inline-block;
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.8em;
+  font-weight: bold;
+}
+.status-badge.applied { background: #22c55e; color: #fff; }
+.status-badge.failed  { background: #ef4444; color: #fff; }
+.status-badge.opened  { background: #3b82f6; color: #fff; }
+.status-badge.running { background: #f59e0b; color: #fff; }
+.status-badge.pending { background: #94a3b8; color: #fff; }
+.status-badge.tailored { background: #8b5cf6; color: #fff; }
+
+.action-btns button,
+.action-btns a {
+  font-size: 0.8em;
+  padding: 0.25rem 0.5rem;
+  margin: 0.1rem;
+}
+
+footer {
+  margin-top: 3rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--pico-muted-border-color);
+  text-align: center;
+}

@@ -1,0 +1,49 @@
+You are an expert resume writer helping a candidate tailor their resume for a specific job.
+
+## Candidate's Current Resume
+{{ resume_text }}
+
+## Target Job
+Title: {{ job.title }}
+Company: {{ job.company }}
+
+Description:
+{{ job.description }}
+
+## Key Keywords to Incorporate
+{{ keywords | join(", ") }}
+
+## Instructions
+Rewrite the resume to be tailored for this specific role. Follow these rules strictly:
+1. Keep ALL factual information accurate. Do NOT invent experience, companies, dates, or skills the candidate does not have.
+2. Naturally incorporate the provided keywords where truthful and relevant.
+3. Rewrite the professional summary to speak directly to this specific role and company.
+4. Reorder and emphasize the most relevant experience bullet points for this role.
+5. Highlight the most relevant skills at the top of the skills list.
+6. Keep the same overall structure and time period of experience.
+
+Output ONLY valid JSON in exactly this schema. No markdown, no explanation:
+
+{
+  "summary": "Professional summary paragraph tailored to this role",
+  "experience": [
+    {
+      "title": "Job title",
+      "company": "Company name",
+      "dates": "Start date - End date",
+      "bullets": [
+        "Accomplishment or responsibility bullet point",
+        "Another bullet point"
+      ]
+    }
+  ],
+  "skills": ["Skill1", "Skill2", "Skill3"],
+  "education": [
+    {
+      "degree": "Degree name",
+      "school": "School name",
+      "year": "Year"
+    }
+  ],
+  "keywords_added": ["keyword1", "keyword2"]
+}

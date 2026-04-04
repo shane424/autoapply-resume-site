@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Resume — AutoApply{% endblock %}
+
+{% block content %}
+<h2>Your Resume</h2>
+
+<article>
+  <header><strong>Upload Resume</strong></header>
+  <form id="upload-form" enctype="multipart/form-data">
+    <input type="file" id="resume-file" name="file" accept=".pdf,.docx,.doc" required />
+    <button type="submit">Upload</button>
+  </form>
+  <div id="upload-status"></div>
+</article>
+
+<article id="resume-preview" style="display:none">
+  <header><strong id="resume-filename"></strong></header>
+
+  <section>
+    <h4>Contact</h4>
+    <div id="resume-contact"></div>
+  </section>
+
+  <section>
+    <h4>Summary</h4>
+    <p id="resume-summary"></p>
+  </section>
+
+  <section>
+    <h4>Skills</h4>
+    <div id="resume-skills"></div>
+  </section>
+
+  <section>
+    <h4>Experience</h4>
+    <div id="resume-experience"></div>
+  </section>
+
+  <section>
+    <h4>Education</h4>
+    <div id="resume-education"></div>
+  </section>
+
+  <footer>
+    <button class="secondary outline" id="clear-btn">Clear Resume</button>
+  </footer>
+</article>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/resume.js"></script>
+{% endblock %}
