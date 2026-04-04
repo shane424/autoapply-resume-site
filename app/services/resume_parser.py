@@ -100,6 +100,41 @@ def _clean_bullet(line: str) -> str:
     return BULLET_RE.sub("", line).strip()
 
 
+# Matches "Agency - Client" or "Agency LLC - Client Corp" patterns in company names.
+# Both sides must start with a capital letter so we don't confuse hyphens in dates.
+_AGENCY_CLIENT_RE = re.compile(r'^(.+?)\s+-\s+([A-Z].+)$')
+
+
+def _normalize_company(name: str) -> str:
+    """Convert 'Agency - Client' to 'Agency (Client)' for better ATS compatibility.
+
+    e.g. 'AGR LLC - GE Aviation'  -> 'AGR LLC (GE Aviation)'
+         'ActOne - JP Morgan Chase' -> 'ActOne (JP Morgan Chase)'
+         'Pure Storage'             -> 'Pure Storage'  (unchanged)
+    """
+    m = _AGENCY_CLIENT_RE.match(name.strip())
+    if m:
+        return f"{m.group(1)} ({m.group(2)})"
+    return name
+
+
+def _split_title_company(remainder: str) -> tuple[str, str]:
+    """Split 'Title   Company' into (title, company).
+
+    Strategy:
+    1. Prefer splitting on 2+ spaces (preserves 'AGR LLC - GE Aviation' as one chunk).
+    2. Fall back to splitting on em/en-dash.
+    3. Fall back to splitting on ' | ' or ' · '.
+    4. Give up — return whole string as title.
+    """
+    for pattern in (r"\s{2,}", r"[—–]", r"\s[|·]\s"):
+        parts = [p.strip() for p in re.split(pattern, remainder) if p.strip()]
+        if len(parts) >= 2:
+            return parts[0], _normalize_company(parts[1])
+
+    return remainder.strip(), ""
+
+
 def _parse_experience(lines: list[str]) -> list[ExperienceEntry]:
     entries: list[ExperienceEntry] = []
     current: dict | None = None
@@ -114,29 +149,14 @@ def _parse_experience(lines: list[str]) -> list[ExperienceEntry]:
 
         if date_match and not _is_bullet(stripped):
             # This looks like a job header line: "Title   Company   Date"
-            # Save the previous entry
             if current:
                 entries.append(ExperienceEntry(**current))
             seen_bullets = set()
 
             dates = date_match.group().strip()
-            # Remove the date range from the line to get "Title   Company"
-            remainder = DATE_RANGE_RE.sub("", stripped).strip().strip("—–-").strip()
-
-            # Split remainder into title and company by whitespace gap or known separator
-            # Try splitting on 2+ consecutive spaces or a dash/em-dash
-            parts = re.split(r"\s{2,}|—|–", remainder)
-            parts = [p.strip() for p in parts if p.strip()]
-
-            if len(parts) >= 2:
-                title = parts[0]
-                company = parts[1]
-            elif len(parts) == 1:
-                title = parts[0]
-                company = ""
-            else:
-                title = remainder
-                company = ""
+            # Remove the date range from the line, then split into title + company
+            remainder = DATE_RANGE_RE.sub("", stripped).strip().strip("—–").strip()
+            title, company = _split_title_company(remainder)
 
             current = {"title": title, "company": company, "dates": dates, "bullets": []}
 

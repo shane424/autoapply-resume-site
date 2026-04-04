@@ -1,5 +1,5 @@
 import pytest
-from app.services.resume_parser import _extract_contact, _parse_skills, _parse_sections
+from app.services.resume_parser import _extract_contact, _parse_skills, _parse_sections, _normalize_company, _split_title_company
 
 
 def test_extract_contact_email():
@@ -21,6 +21,29 @@ def test_parse_skills_pipe():
     skills = _parse_skills(lines)
     assert "React" in skills
     assert "TypeScript" in skills
+
+
+def test_normalize_company_agency_dash_client():
+    assert _normalize_company("AGR LLC - GE Aviation") == "AGR LLC (GE Aviation)"
+    assert _normalize_company("ActOne - JP Morgan Chase") == "ActOne (JP Morgan Chase)"
+
+
+def test_normalize_company_no_change():
+    assert _normalize_company("Pure Storage") == "Pure Storage"
+    assert _normalize_company("DMI") == "DMI"
+
+
+def test_split_title_company_wide_spaces():
+    title, company = _split_title_company("Python Developer    DMI")
+    assert title == "Python Developer"
+    assert company == "DMI"
+
+
+def test_split_title_company_agency_client_preserved():
+    # The company name with a dash must not be split further
+    title, company = _split_title_company("HVR Application Engineer    AGR LLC - GE Aviation")
+    assert title == "HVR Application Engineer"
+    assert company == "AGR LLC (GE Aviation)"
 
 
 def test_detect_sections():
