@@ -39,8 +39,27 @@ def test_split_title_company_wide_spaces():
     assert company == "DMI"
 
 
+def test_split_title_company_single_space_fallback():
+    # When PDF gives single spaces, role-word heuristic takes over
+    title, company = _split_title_company("Python Developer DMI")
+    assert title == "Python Developer"
+    assert company == "DMI"
+
+
+def test_split_title_company_single_space_pure_storage():
+    title, company = _split_title_company("Support Engineer Pure Storage")
+    assert title == "Support Engineer"
+    assert company == "Pure Storage"
+
+
+def test_split_title_company_single_space_sql():
+    title, company = _split_title_company("SQL Developer ActOne")
+    assert title == "SQL Developer"
+    assert company == "ActOne"
+
+
 def test_split_title_company_agency_client_preserved():
-    # The company name with a dash must not be split further
+    # Wide-space path: company name with a dash must not be split further
     title, company = _split_title_company("HVR Application Engineer    AGR LLC - GE Aviation")
     assert title == "HVR Application Engineer"
     assert company == "AGR LLC (GE Aviation)"

@@ -118,19 +118,63 @@ def _normalize_company(name: str) -> str:
     return name
 
 
+# Words that strongly indicate a job title component.
+# We split at the first word NOT in this set (after consuming at least one title word).
+_ROLE_WORDS = {
+    'senior', 'junior', 'lead', 'principal', 'staff', 'associate', 'chief',
+    'software', 'backend', 'frontend', 'fullstack', 'full-stack',
+    'engineer', 'developer', 'architect', 'manager', 'director', 'analyst',
+    'designer', 'consultant', 'specialist', 'administrator', 'coordinator',
+    'python', 'java', 'javascript', 'typescript', 'react', 'node', 'golang',
+    'data', 'cloud', 'devops', 'platform', 'systems', 'security', 'network',
+    'application', 'hvr', 'sql', 'database', 'web', 'mobile', 'ios', 'android',
+    'machine', 'learning', 'ai', 'ml', 'support', 'site', 'reliability',
+    'full', 'stack', 'quality', 'assurance', 'qa', 'product', 'technical',
+    'solutions', 'integration', 'embedded', 'infrastructure', 'operations',
+}
+
+
+def _split_by_role_words(text: str) -> tuple[str, str]:
+    """Fallback: split 'Python Developer DMI' -> ('Python Developer', 'DMI').
+
+    Consumes words that look like job-title words; splits at the first word
+    that doesn't — that word and everything after it is the company name.
+    Requires at least one title word before splitting.
+    """
+    words = text.split()
+    split_idx = len(words)  # default: all words are title
+    found_role_word = False
+    for i, word in enumerate(words):
+        if word.lower() in _ROLE_WORDS:
+            found_role_word = True
+        elif found_role_word:
+            split_idx = i
+            break
+
+    if split_idx < len(words):
+        return " ".join(words[:split_idx]), _normalize_company(" ".join(words[split_idx:]))
+    return text.strip(), ""
+
+
 def _split_title_company(remainder: str) -> tuple[str, str]:
     """Split 'Title   Company' into (title, company).
 
-    Strategy:
-    1. Prefer splitting on 2+ spaces (preserves 'AGR LLC - GE Aviation' as one chunk).
-    2. Fall back to splitting on em/en-dash.
-    3. Fall back to splitting on ' | ' or ' · '.
-    4. Give up — return whole string as title.
+    Strategy (in order):
+    1. 2+ spaces — preserves 'AGR LLC - GE Aviation' as one company chunk.
+    2. Em/en-dash separator.
+    3. ' | ' or ' · ' separator.
+    4. Role-word heuristic — 'Python Developer DMI' -> ('Python Developer', 'DMI').
+    5. Give up — return whole string as title.
     """
     for pattern in (r"\s{2,}", r"[—–]", r"\s[|·]\s"):
         parts = [p.strip() for p in re.split(pattern, remainder) if p.strip()]
         if len(parts) >= 2:
             return parts[0], _normalize_company(parts[1])
+
+    # Fallback: use role-word heuristic for single-spaced text
+    title, company = _split_by_role_words(remainder)
+    if company:
+        return title, company
 
     return remainder.strip(), ""
 
