@@ -4,12 +4,15 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.api import resume, jobs, tailor, apply, settings as settings_router
+from app.utils.deps import print_startup_check, check_dependencies
 
 BASE_DIR = Path(__file__).parent.parent
 STORAGE_DIR = BASE_DIR / "storage"
 STORAGE_DIR.mkdir(exist_ok=True)
 (STORAGE_DIR / "uploads").mkdir(exist_ok=True)
 (STORAGE_DIR / "tailored").mkdir(exist_ok=True)
+
+print_startup_check()
 
 app = FastAPI(title="AutoApply Resume Site")
 
@@ -46,3 +49,14 @@ async def job_detail_page(request: Request, job_id: str):
 @app.get("/settings")
 async def settings_page(request: Request):
     return templates.TemplateResponse("settings.html", {"request": request})
+
+
+@app.get("/api/health")
+async def health():
+    results = check_dependencies()
+    missing_required = [k for k in results if k not in ("playwright",) and results[k].startswith("MISSING")]
+    return {
+        "status": "ok" if not missing_required else "degraded",
+        "dependencies": results,
+        "missing_required": missing_required,
+    }

@@ -3,6 +3,12 @@ from app.models.resume import TailoredResumeContent, ParsedResume
 
 STORAGE_DIR = Path(__file__).parent.parent.parent / "storage" / "tailored"
 
+try:
+    import reportlab  # noqa: F401
+    _REPORTLAB_OK = True
+except ImportError:
+    _REPORTLAB_OK = False
+
 # Points per inch / millimetre helpers for reportlab
 _PT_PER_MM = 2.8346
 
@@ -169,12 +175,20 @@ def build_resume(content: TailoredResumeContent, original_resume: ParsedResume) 
     job_dir.mkdir(parents=True, exist_ok=True)
 
     contact = original_resume.contact
-    pdf_path = job_dir / "resume.pdf"
     docx_path = job_dir / "resume.docx"
 
-    _build_pdf(content, contact, pdf_path)
+    # DOCX always — python-docx is pure Python, no system deps
     _build_docx(content, contact, docx_path)
-
-    content.pdf_path = str(pdf_path)
     content.docx_path = str(docx_path)
+
+    # PDF — requires reportlab; give a clear error if missing
+    if not _REPORTLAB_OK:
+        raise RuntimeError(
+            "reportlab is not installed. Run: pip install reportlab==4.2.5\n"
+            "Your DOCX was generated successfully at: " + str(docx_path)
+        )
+    pdf_path = job_dir / "resume.pdf"
+    _build_pdf(content, contact, pdf_path)
+    content.pdf_path = str(pdf_path)
+
     return content
