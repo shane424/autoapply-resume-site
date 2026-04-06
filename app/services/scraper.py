@@ -18,9 +18,8 @@ HEADERS = {
     "Accept": "application/json, text/html, application/rss+xml, */*",
 }
 
-# Patterns that indicate a position is NOT open to US-based remote workers.
-# We err on the side of inclusion — only exclude when explicitly restricted.
-_NON_US_PATTERNS = re.compile(
+# Explicit hard exclusions — job clearly not open to US applicants
+_HARD_EXCLUDE_RE = re.compile(
     r"""
     \b(?:
         eu[-\s]only | europe[-\s]only | uk[-\s]only |
@@ -28,9 +27,8 @@ _NON_US_PATTERNS = re.compile(
         not\s+(?:available|open|hiring)\s+(?:in|for|to)\s+(?:the\s+)?(?:us|usa|united\s+states) |
         (?:us|usa|united\s+states)\s+(?:residents?|applicants?|candidates?|citizens?)\s+not |
         no\s+(?:us|usa|united\s+states)\s+(?:residents?|applicants?|candidates?) |
-        must\s+be\s+(?:based\s+)?in\s+(?:the\s+)?(?:eu|europe|uk|germany|france|netherlands|canada(?:\s+only)?) |
-        (?:germany|france|netherlands|spain|italy|poland|uk|canada)\s+only |
-        (?:work\s+)?visa\s+(?:sponsorship\s+)?not\s+(?:available|provided|offered) |
+        must\s+be\s+(?:based\s+)?in\s+(?:the\s+)?(?:eu|europe|uk|ireland|germany|france|netherlands|canada(?:\s+only)?) |
+        (?:ireland|germany|france|netherlands|spain|italy|poland|uk|canada|australia|india)\s+only |
         european\s+union\s+only |
         outside\s+(?:the\s+)?(?:us|usa|united\s+states)\s+only
     )\b
@@ -38,17 +36,70 @@ _NON_US_PATTERNS = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
+# Non-US locations that still say "Remote" — ambiguous, keep but warn
+_NON_US_LOCATION_RE = re.compile(
+    r"""
+    \b(?:
+        ireland | dublin | london | berlin | amsterdam | paris | toronto |
+        sydney | melbourne | singapore | bangalore | tel\s*aviv |
+        united\s+kingdom | germany | france | netherlands | australia |
+        india | canada | new\s+zealand | south\s+africa | brazil | mexico |
+        sweden | norway | denmark | finland | austria | switzerland |
+        belgium | portugal | spain | italy | poland | czech | romania |
+        ukraine | israel | japan | south\s+korea
+    )\b
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 
-def _is_us_remote(text: str) -> bool:
-    """Return False if the job description explicitly excludes US-based applicants."""
-    return not bool(_NON_US_PATTERNS.search(text))
+# Regex to pull "Location(s): Some City, Country (Remote)" from description
+_LOCATION_EXTRACT_RE = re.compile(
+    r"location(?:\(s\))?\s*:\s*([^\n]{3,80})", re.IGNORECASE
+)
+
+
+def _extract_location(description: str, fallback: str = "Remote") -> str:
+    """Pull an explicit location line from the job description if present."""
+    m = _LOCATION_EXTRACT_RE.search(description)
+    if m:
+        loc = m.group(1).strip().rstrip(".")
+        # Keep it short — truncate after first semicolon or second comma
+        loc = loc.split(";")[0].strip()
+        return loc
+    return fallback
+
+
+def _us_remote_status(text: str, location: str) -> str:
+    """Return 'yes', 'no', or 'unclear' for US-remote eligibility.
+
+    - 'no'      explicit language blocking US applicants
+    - 'unclear' non-US city/country in location but still says Remote
+    - 'yes'     no geographic red flags
+    """
+    combined = text + " " + location
+    if _HARD_EXCLUDE_RE.search(combined):
+        return "no"
+    # If location names a non-US city/country AND the word "remote" appears,
+    # it might still allow global remote — flag for the user to verify.
+    if _NON_US_LOCATION_RE.search(location) and re.search(r"\bremote\b", combined, re.IGNORECASE):
+        return "unclear"
+    # If the description body (not just location) mentions a non-US city without
+    # any "worldwide"/"global"/"anywhere" qualifier, flag as unclear.
+    if _NON_US_LOCATION_RE.search(location):
+        return "unclear"
+    return "yes"
 
 
 def _enrich_job(job: Job) -> Job:
-    """Detect secret instructions and US-remote eligibility from description."""
+    """Detect secret instructions, location, and US-remote eligibility."""
     secrets = detect_secrets(job.description)
     job.secret_instructions = [s.secret for s in secrets]
-    job.us_remote = _is_us_remote(job.description + " " + job.location)
+
+    # Try to extract a real location from the description text
+    extracted_loc = _extract_location(job.description, fallback=job.location or "Remote")
+    job.location = extracted_loc
+
+    job.us_remote = _us_remote_status(job.description, extracted_loc)
     return job
 
 
@@ -146,8 +197,8 @@ def _matches_filters(text: str, filters: FilterConfig) -> bool:
     if filters.roles:
         if not any(role.lower() in text_lower for role in filters.roles if role):
             return False
-    # Exclude non-US-remote positions
-    if not _is_us_remote(text):
+    # Hard-exclude only when explicitly not open to US — unclear stays in
+    if _HARD_EXCLUDE_RE.search(text):
         return False
     return True
 

@@ -63,7 +63,7 @@ def detect_secrets(description: str) -> list[SecretInstruction]:
             m = pattern.search(sentence)
             if not m:
                 continue
-            secret = m.group(1).strip("\"'.,;:").strip()
+            secret = m.group(1).strip("\"'.,;:*_`").strip()  # strip markdown bold/italic too
             if secret.lower() in _FALSE_POSITIVES:
                 continue
             if secret in seen_secrets:

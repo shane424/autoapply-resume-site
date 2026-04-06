@@ -17,9 +17,7 @@ def _build_pdf(content: TailoredResumeContent, contact: dict, out_path: Path) ->
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import inch
     from reportlab.lib import colors
-    from reportlab.platypus import (
-        SimpleDocTemplate, Paragraph, Spacer, HRFlowable
-    )
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 
     doc = SimpleDocTemplate(
         str(out_path),
@@ -61,11 +59,18 @@ def _build_pdf(content: TailoredResumeContent, contact: dict, out_path: Path) ->
         textColor=colors.HexColor("#555555"), spaceAfter=2,
     )
 
+    def _hr():
+        # Table-based horizontal rule — avoids HRFlowable Windows bug
+        t = Table([[""]], colWidths=["100%"])
+        t.setStyle(TableStyle([
+            ("LINEBELOW", (0, 0), (-1, -1), 0.75, colors.HexColor("#333333")),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ]))
+        return t
+
     def section(title: str) -> list:
-        return [
-            Paragraph(title.upper(), section_style),
-            HRFlowable(width="100%", thickness=0.75, color=colors.HexColor("#333333"), spaceAfter=4),
-        ]
+        return [Paragraph(title.upper(), section_style), _hr()]
 
     story = []
 

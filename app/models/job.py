@@ -15,7 +15,10 @@ class Job(BaseModel):
     tags: list[str] = []
     posted_at: Optional[datetime] = None
     secret_instructions: list[str] = []   # e.g. ["DANKEN", "ROTkuMTQ2LjE2LjE0MQ=="]
-    us_remote: bool = True                # False = detected as non-US-remote
+    us_remote: str = "yes"               # "yes" | "no" | "unclear"
+    # "yes"     = no geographic restriction detected
+    # "no"      = explicitly excludes US (EU only, no US applicants, etc.)
+    # "unclear" = non-US location listed but says "Remote" — may allow US
 
 
 class JobApplyStatus(BaseModel):

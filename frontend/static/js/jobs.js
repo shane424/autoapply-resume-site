@@ -37,8 +37,10 @@ function renderJobs(jobs) {
     const secretBadge = (job.secret_instructions || []).length
       ? `<span class="status-badge secret" title="Secret word required: ${escHtml((job.secret_instructions||[]).join(', '))}">🔑 secret</span> `
       : '';
-    const usWarning = job.us_remote === false
-      ? '<span class="status-badge failed" title="May not be open to US applicants">⚠ non-US</span> '
+    const usWarning = job.us_remote === 'no'
+      ? `<span class="status-badge failed" title="Explicitly excludes US applicants">✕ non-US</span> `
+      : job.us_remote === 'unclear'
+      ? `<span class="status-badge secret" title="Non-US location listed but says Remote — verify if US applicants are welcome (${escHtml(job.location||'')})">📍 check location</span> `
       : '';
     return `
       <tr id="row-${job.id}">
