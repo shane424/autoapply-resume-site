@@ -33,5 +33,6 @@ class TailoredResumeContent(BaseModel):
     skills: list[str]
     education: list[EducationEntry]
     keywords_added: list[str] = []
+    cover_letter: str = ""
     pdf_path: Optional[str] = None
     docx_path: Optional[str] = None

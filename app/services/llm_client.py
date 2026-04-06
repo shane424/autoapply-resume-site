@@ -75,6 +75,7 @@ async def tailor_resume(resume: ParsedResume, job: Job) -> TailoredResumeContent
         resume_text=resume.raw_text,
         job=job,
         keywords=keywords,
+        secret_instructions=job.secret_instructions,
     )
     response = await _complete(prompt)
     data = _parse_json_response(response)
@@ -103,4 +104,5 @@ async def tailor_resume(resume: ParsedResume, job: Job) -> TailoredResumeContent
         skills=data.get("skills", []),
         education=education,
         keywords_added=data.get("keywords_added", []),
+        cover_letter=data.get("cover_letter", ""),
     )

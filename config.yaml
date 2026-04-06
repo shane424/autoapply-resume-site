@@ -1,6 +1,6 @@
 llm:
   provider: "claude"                   # "claude" or "ollama"
-  claude_model: "claude-3-5-haiku-20241022"
+  claude_model: "claude-haiku-4-5-20251001"
   ollama_model: "llama3.2"
   ollama_base_url: "http://localhost:11434"
 

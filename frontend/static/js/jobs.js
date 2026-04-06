@@ -34,6 +34,12 @@ function renderJobs(jobs) {
     const statusBadge = status
       ? `<span class="status-badge ${status}">${status}</span>`
       : '';
+    const secretBadge = (job.secret_instructions || []).length
+      ? `<span class="status-badge secret" title="Secret word required: ${escHtml((job.secret_instructions||[]).join(', '))}">🔑 secret</span> `
+      : '';
+    const usWarning = job.us_remote === false
+      ? '<span class="status-badge failed" title="May not be open to US applicants">⚠ non-US</span> '
+      : '';
     return `
       <tr id="row-${job.id}">
         <td><a href="/jobs/${encodeURIComponent(job.id)}">${escHtml(job.title)}</a></td>
@@ -45,7 +51,7 @@ function renderJobs(jobs) {
           <button onclick="applyJob('${job.id}','auto')">Auto Apply</button>
           <button onclick="applyJob('${job.id}','semiauto')">Open URL</button>
         </td>
-        <td>${tailored}${statusBadge}</td>
+        <td>${usWarning}${secretBadge}${tailored}${statusBadge}</td>
       </tr>
     `;
   }).join('');

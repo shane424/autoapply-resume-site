@@ -13,6 +13,14 @@ Description:
 ## Key Keywords to Incorporate
 {{ keywords | join(", ") }}
 
+{% if secret_instructions %}
+## Application Secret Instructions
+The job posting requires these words/codes to be included in the application:
+{% for s in secret_instructions %}  - {{ s }}
+{% endfor %}
+Include them naturally at the end of the cover_letter field in your output.
+{% endif %}
+
 ## Instructions
 Rewrite the resume to be tailored for this specific role. Follow these rules strictly:
 1. Keep ALL factual information accurate. Do NOT invent experience, companies, dates, or skills the candidate does not have.
@@ -21,6 +29,7 @@ Rewrite the resume to be tailored for this specific role. Follow these rules str
 4. Reorder and emphasize the most relevant experience bullet points for this role.
 5. Highlight the most relevant skills at the top of the skills list.
 6. Keep the same overall structure and time period of experience.
+{% if secret_instructions %}7. Append the required secret word(s) to the cover_letter field.{% endif %}
 
 Output ONLY valid JSON in exactly this schema. No markdown, no explanation:
 
@@ -45,5 +54,6 @@ Output ONLY valid JSON in exactly this schema. No markdown, no explanation:
       "year": "Year"
     }
   ],
-  "keywords_added": ["keyword1", "keyword2"]
+  "keywords_added": ["keyword1", "keyword2"],
+  "cover_letter": "Optional cover letter paragraph. Include any required secret words here."
 }

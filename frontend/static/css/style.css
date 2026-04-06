@@ -32,12 +32,13 @@ header nav {
   font-size: 0.8em;
   font-weight: bold;
 }
-.status-badge.applied { background: #22c55e; color: #fff; }
-.status-badge.failed  { background: #ef4444; color: #fff; }
-.status-badge.opened  { background: #3b82f6; color: #fff; }
-.status-badge.running { background: #f59e0b; color: #fff; }
-.status-badge.pending { background: #94a3b8; color: #fff; }
+.status-badge.applied  { background: #22c55e; color: #fff; }
+.status-badge.failed   { background: #ef4444; color: #fff; }
+.status-badge.opened   { background: #3b82f6; color: #fff; }
+.status-badge.running  { background: #f59e0b; color: #fff; }
+.status-badge.pending  { background: #94a3b8; color: #fff; }
 .status-badge.tailored { background: #8b5cf6; color: #fff; }
+.status-badge.secret   { background: #d97706; color: #fff; cursor: help; }
 
 .action-btns button,
 .action-btns a {

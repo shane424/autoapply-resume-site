@@ -4,7 +4,7 @@ from typing import Optional
 
 class LLMConfig(BaseModel):
     provider: str = "claude"
-    claude_model: str = "claude-3-5-haiku-20241022"
+    claude_model: str = "claude-haiku-4-5-20251001"
     ollama_model: str = "llama3.2"
     ollama_base_url: str = "http://localhost:11434"
 

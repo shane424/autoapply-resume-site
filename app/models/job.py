@@ -14,6 +14,8 @@ class Job(BaseModel):
     salary: Optional[str] = None
     tags: list[str] = []
     posted_at: Optional[datetime] = None
+    secret_instructions: list[str] = []   # e.g. ["DANKEN", "ROTkuMTQ2LjE2LjE0MQ=="]
+    us_remote: bool = True                # False = detected as non-US-remote
 
 
 class JobApplyStatus(BaseModel):
