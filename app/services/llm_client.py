@@ -19,7 +19,11 @@ def _render_prompt(template_name: str, **kwargs) -> str:
 
 async def _call_claude(prompt: str, model: str) -> str:
     import anthropic
-    client = anthropic.AsyncAnthropic(api_key=env_settings.anthropic_api_key)
+    # 90s timeout per call — two calls = max ~3 min total before we give up
+    client = anthropic.AsyncAnthropic(
+        api_key=env_settings.anthropic_api_key,
+        timeout=90.0,
+    )
     message = await client.messages.create(
         model=model,
         max_tokens=4096,

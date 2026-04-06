@@ -1,3 +1,5 @@
+import asyncio
+import traceback
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from app.api.resume import get_active_resume
 from app.api.jobs import get_job_by_id
@@ -9,6 +11,9 @@ router = APIRouter()
 
 # In-memory tailor task status
 _tailor_status: dict[str, dict] = {}  # job_id -> {"status": ..., "result": ..., "error": ...}
+
+# Total timeout for the entire tailor pipeline (LLM + PDF build), in seconds
+TAILOR_TIMEOUT_SECS = 120
 
 
 def _get_status(job_id: str) -> dict:
@@ -25,15 +30,28 @@ async def _run_tailor(job_id: str) -> None:
         if not job:
             raise ValueError("Job not found.")
 
-        tailored = await tailor_resume(resume, job)
+        try:
+            tailored = await asyncio.wait_for(
+                tailor_resume(resume, job),
+                timeout=TAILOR_TIMEOUT_SECS,
+            )
+        except asyncio.TimeoutError:
+            raise TimeoutError(
+                f"LLM call timed out after {TAILOR_TIMEOUT_SECS}s. "
+                "Check your API key and network connection."
+            )
+
         tailored = build_resume(tailored, resume)
         _tailor_status[job_id] = {
             "status": "done",
             "result": tailored,
             "error": None,
             "keywords_added": tailored.keywords_added,
+            "cover_letter": tailored.cover_letter,
         }
     except Exception as e:
+        # Print full traceback to server console so you can diagnose locally
+        traceback.print_exc()
         _tailor_status[job_id] = {"status": "failed", "result": None, "error": str(e)}
 
 
@@ -57,4 +75,5 @@ async def get_tailor_status(job_id: str):
         "status": s.get("status", "not_started"),
         "error": s.get("error"),
         "keywords_added": s.get("keywords_added", []),
+        "cover_letter": s.get("cover_letter", ""),
     }
