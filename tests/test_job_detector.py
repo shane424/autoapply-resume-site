@@ -76,8 +76,9 @@ def test_unspecified_passes():
     assert _us_remote_status("Remote position for a backend engineer.", "Remote") == "yes"
 
 
-def test_ireland_remote_is_unclear():
-    assert _us_remote_status("Great role!", "Dublin, Ireland (Remote)") == "unclear"
+def test_ireland_remote_is_ok():
+    # Company is in Ireland but job is remote — not an exclusion
+    assert _us_remote_status("Great role!", "Dublin, Ireland (Remote)") == "yes"
 
 
 def test_location_extraction():

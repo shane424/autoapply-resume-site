@@ -39,13 +39,12 @@ function renderJobs(jobs) {
       : '';
     const usWarning = job.us_remote === 'no'
       ? `<span class="status-badge failed" title="Explicitly excludes US applicants">✕ non-US</span> `
-      : job.us_remote === 'unclear'
-      ? `<span class="status-badge secret" title="Non-US location listed but says Remote — verify if US applicants are welcome (${escHtml(job.location||'')})">📍 check location</span> `
       : '';
     return `
       <tr id="row-${job.id}">
         <td><a href="/jobs/${encodeURIComponent(job.id)}">${escHtml(job.title)}</a></td>
         <td>${escHtml(job.company)}</td>
+        <td style="font-size:0.85em;color:#555">${escHtml(job.location||'Remote')}</td>
         <td><span class="source-badge">${escHtml(job.source)}</span></td>
         <td>${(job.tags||[]).slice(0,4).map(t=>`<kbd>${escHtml(t)}</kbd>`).join(' ')}</td>
         <td class="action-btns">

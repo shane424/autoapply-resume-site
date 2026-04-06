@@ -36,22 +36,6 @@ _HARD_EXCLUDE_RE = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
-# Non-US locations that still say "Remote" — ambiguous, keep but warn
-_NON_US_LOCATION_RE = re.compile(
-    r"""
-    \b(?:
-        ireland | dublin | london | berlin | amsterdam | paris | toronto |
-        sydney | melbourne | singapore | bangalore | tel\s*aviv |
-        united\s+kingdom | germany | france | netherlands | australia |
-        india | canada | new\s+zealand | south\s+africa | brazil | mexico |
-        sweden | norway | denmark | finland | austria | switzerland |
-        belgium | portugal | spain | italy | poland | czech | romania |
-        ukraine | israel | japan | south\s+korea
-    )\b
-    """,
-    re.IGNORECASE | re.VERBOSE,
-)
-
 # Regex to pull "Location(s): Some City, Country (Remote)" from description
 _LOCATION_EXTRACT_RE = re.compile(
     r"location(?:\(s\))?\s*:\s*([^\n]{3,80})", re.IGNORECASE
@@ -70,23 +54,15 @@ def _extract_location(description: str, fallback: str = "Remote") -> str:
 
 
 def _us_remote_status(text: str, location: str) -> str:
-    """Return 'yes', 'no', or 'unclear' for US-remote eligibility.
+    """Return 'yes' or 'no' — only hard-exclude when explicitly stated.
 
-    - 'no'      explicit language blocking US applicants
-    - 'unclear' non-US city/country in location but still says Remote
-    - 'yes'     no geographic red flags
+    A non-US company location (e.g. 'Dublin, Ireland (Remote)') is fine;
+    the company is just based there. Only flag 'no' when the posting
+    explicitly says US applicants are not welcome.
     """
     combined = text + " " + location
     if _HARD_EXCLUDE_RE.search(combined):
         return "no"
-    # If location names a non-US city/country AND the word "remote" appears,
-    # it might still allow global remote — flag for the user to verify.
-    if _NON_US_LOCATION_RE.search(location) and re.search(r"\bremote\b", combined, re.IGNORECASE):
-        return "unclear"
-    # If the description body (not just location) mentions a non-US city without
-    # any "worldwide"/"global"/"anywhere" qualifier, flag as unclear.
-    if _NON_US_LOCATION_RE.search(location):
-        return "unclear"
     return "yes"
 
 
