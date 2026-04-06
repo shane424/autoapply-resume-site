@@ -35,3 +35,5 @@ class AppSettings(BaseModel):
     filters: FilterConfig = FilterConfig()
     apply: ApplyConfig = ApplyConfig()
     user_profile: UserProfile = UserProfile()
+    # Optional folder to copy finished resume files into (in addition to internal storage)
+    output_dir: str = ""

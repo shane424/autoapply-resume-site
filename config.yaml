@@ -24,3 +24,7 @@ user_profile:
   linkedin: ""
   website: ""
   cover_letter_template: ""
+
+# Folder where finished resume files are copied (PDF + DOCX), named after you.
+# Uses forward slashes — works on Windows too.
+output_dir: "C:/Users/Shane/Documents/Resume/2025/updated/AIGenerated"

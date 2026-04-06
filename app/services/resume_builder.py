@@ -1,7 +1,16 @@
+import re
+import shutil
 from pathlib import Path
 from app.models.resume import TailoredResumeContent, ParsedResume
 
 STORAGE_DIR = Path(__file__).parent.parent.parent / "storage" / "tailored"
+
+
+def _safe_filename(name: str) -> str:
+    """Convert a name like 'Shane Smith' -> 'Shane_Smith', stripping unsafe chars."""
+    name = name.strip()
+    name = re.sub(r"[^\w\s-]", "", name)
+    return re.sub(r"\s+", "_", name)
 
 try:
     import reportlab  # noqa: F401
@@ -171,6 +180,8 @@ def _build_docx(content: TailoredResumeContent, contact: dict, out_path: Path) -
 
 
 def build_resume(content: TailoredResumeContent, original_resume: ParsedResume) -> TailoredResumeContent:
+    from app.config import load_app_settings
+
     job_dir = STORAGE_DIR / content.job_id
     job_dir.mkdir(parents=True, exist_ok=True)
 
@@ -190,5 +201,18 @@ def build_resume(content: TailoredResumeContent, original_resume: ParsedResume) 
     pdf_path = job_dir / "resume.pdf"
     _build_pdf(content, contact, pdf_path)
     content.pdf_path = str(pdf_path)
+
+    # Copy to user-configured output directory (if set), named after the person
+    settings = load_app_settings()
+    if settings.output_dir:
+        out_dir = Path(settings.output_dir)
+        try:
+            out_dir.mkdir(parents=True, exist_ok=True)
+            stem = _safe_filename(contact.get("name", "resume")) or "resume"
+            shutil.copy2(pdf_path, out_dir / f"{stem}.pdf")
+            shutil.copy2(docx_path, out_dir / f"{stem}.docx")
+        except Exception as e:
+            # Non-fatal — internal files are still written successfully
+            print(f"[resume_builder] Warning: could not copy to output_dir: {e}")
 
     return content

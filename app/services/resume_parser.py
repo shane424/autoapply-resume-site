@@ -62,8 +62,11 @@ def _parse_sections(raw_text: str) -> dict:
 def _extract_contact(header_lines: list[str]) -> dict:
     contact: dict[str, str] = {}
     email_re = re.compile(r"[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}")
-    phone_re = re.compile(r"[\+]?[\d\s\-\(\)]{7,15}")
+    # Require at least one digit cluster like "937-499-3269" or "(937) 499-3269"
+    phone_re = re.compile(r"[\+]?\(?\d{3}\)?[\s.\-]\d{3}[\s.\-]\d{4}")
     linkedin_re = re.compile(r"linkedin\.com/in/[\w-]+", re.IGNORECASE)
+    # "City, ST" or "City, State" — two-letter state abbrev or full state name
+    city_re = re.compile(r"\b([A-Z][a-zA-Z\s]+),\s*([A-Z]{2}|[A-Z][a-z]+)\b")
 
     full_text = " ".join(header_lines)
     email_m = email_re.search(full_text)
@@ -75,10 +78,13 @@ def _extract_contact(header_lines: list[str]) -> dict:
     linkedin_m = linkedin_re.search(full_text)
     if linkedin_m:
         contact["linkedin"] = linkedin_m.group()
+    city_m = city_re.search(full_text)
+    if city_m:
+        contact["location"] = city_m.group()
 
     for line in header_lines:
         line = line.strip()
-        if line and not email_re.search(line) and not linkedin_re.search(line) and not phone_re.fullmatch(line):
+        if line and not email_re.search(line) and not linkedin_re.search(line) and not phone_re.search(line):
             contact["name"] = line
             break
     return contact

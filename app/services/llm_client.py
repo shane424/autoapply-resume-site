@@ -7,6 +7,7 @@ from jinja2 import Environment, FileSystemLoader
 from app.config import env_settings, load_app_settings
 from app.models.job import Job
 from app.models.resume import ParsedResume, TailoredResumeContent, ExperienceEntry, EducationEntry
+from app.services.resume_parser import _normalize_company
 
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
 _jinja_env = Environment(loader=FileSystemLoader(str(PROMPTS_DIR)))
@@ -87,7 +88,7 @@ async def tailor_resume(resume: ParsedResume, job: Job) -> TailoredResumeContent
     experience = [
         ExperienceEntry(
             title=e.get("title", ""),
-            company=e.get("company", ""),
+            company=_normalize_company(e.get("company", "")),
             dates=e.get("dates", ""),
             bullets=e.get("bullets", []),
         )
