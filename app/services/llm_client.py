@@ -74,12 +74,11 @@ async def extract_keywords(job: Job) -> list[str]:
 
 
 async def tailor_resume(resume: ParsedResume, job: Job) -> TailoredResumeContent:
-    keywords = await extract_keywords(job)
+    # Single LLM call — keywords extracted inline, structured resume replaces raw text
     prompt = _render_prompt(
         "tailor_resume.j2",
-        resume_text=resume.raw_text,
+        resume=resume,
         job=job,
-        keywords=keywords,
         secret_instructions=job.secret_instructions,
     )
     response = await _complete(prompt)

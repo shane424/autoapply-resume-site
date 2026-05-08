@@ -1,59 +1,59 @@
-You are an expert resume writer helping a candidate tailor their resume for a specific job.
+You are an expert resume writer. Tailor the candidate's resume for the target job.
 
-## Candidate's Current Resume
-{{ resume_text }}
+## Candidate Resume
+{% if resume.contact.get('name') %}Name: {{ resume.contact['name'] }}
+{% endif %}{% if resume.contact.get('email') %}Email: {{ resume.contact['email'] }}
+{% endif %}{% if resume.contact.get('phone') %}Phone: {{ resume.contact['phone'] }}
+{% endif %}{% if resume.contact.get('location') %}Location: {{ resume.contact['location'] }}
+{% endif %}
+{% if resume.summary %}Summary:
+{{ resume.summary }}
+
+{% endif %}Skills: {{ resume.skills | join(', ') }}
+
+Experience:
+{% for exp in resume.experience %}{{ exp.title }} | {{ exp.company }} | {{ exp.dates }}
+{% for b in exp.bullets %}  - {{ b }}
+{% endfor %}{% endfor %}
+
+{% if resume.education %}Education:
+{% for edu in resume.education %}{{ edu.degree }} — {{ edu.school }} ({{ edu.year }})
+{% endfor %}{% endif %}
 
 ## Target Job
-Title: {{ job.title }}
-Company: {{ job.company }}
+{{ job.title }} at {{ job.company }}
 
-Description:
-{{ job.description }}
-
-## Key Keywords to Incorporate
-{{ keywords | join(", ") }}
+{{ job.description[:3000] }}
 
 {% if secret_instructions %}
-## Application Secret Instructions
-The job posting requires these words/codes to be included in the application:
+## Required Secret Words
+The posting asks you to include these — put them in the cover_letter field:
 {% for s in secret_instructions %}  - {{ s }}
 {% endfor %}
-Include them naturally at the end of the cover_letter field in your output.
 {% endif %}
+## Rules
+1. Keep ALL facts accurate. Never invent experience, companies, dates, or skills.
+2. Extract the top keywords/skills from the job description and weave them in where truthful.
+3. Rewrite the summary to address this specific role and company.
+4. Reorder and emphasize the most relevant bullets for this role.
+5. Surface the most relevant skills first.
+6. Do NOT change company names — use them exactly as given.
+{% if secret_instructions %}7. Append the required secret word(s) naturally in the cover_letter.{% endif %}
 
-## Instructions
-Rewrite the resume to be tailored for this specific role. Follow these rules strictly:
-1. Keep ALL factual information accurate. Do NOT invent experience, companies, dates, or skills the candidate does not have.
-2. Naturally incorporate the provided keywords where truthful and relevant.
-3. Rewrite the professional summary to speak directly to this specific role and company.
-4. Reorder and emphasize the most relevant experience bullet points for this role.
-5. Highlight the most relevant skills at the top of the skills list.
-6. Keep the same overall structure and time period of experience.
-{% if secret_instructions %}7. Append the required secret word(s) to the cover_letter field.{% endif %}
-
-Output ONLY valid JSON in exactly this schema. No markdown, no explanation:
+Output ONLY valid JSON — no markdown, no extra text:
 
 {
-  "summary": "Professional summary paragraph tailored to this role",
+  "summary": "Professional summary tailored to this role",
   "experience": [
     {
       "title": "Job title",
-      "company": "Company name",
-      "dates": "Start date - End date",
-      "bullets": [
-        "Accomplishment or responsibility bullet point",
-        "Another bullet point"
-      ]
+      "company": "Company name (unchanged)",
+      "dates": "Start - End",
+      "bullets": ["Accomplishment bullet", "Another bullet"]
     }
   ],
-  "skills": ["Skill1", "Skill2", "Skill3"],
-  "education": [
-    {
-      "degree": "Degree name",
-      "school": "School name",
-      "year": "Year"
-    }
-  ],
+  "skills": ["Skill1", "Skill2"],
+  "education": [{"degree": "Degree", "school": "School", "year": "Year"}],
   "keywords_added": ["keyword1", "keyword2"],
-  "cover_letter": "Optional cover letter paragraph. Include any required secret words here."
+  "cover_letter": "Optional cover letter. Include required secret words here if any."
 }

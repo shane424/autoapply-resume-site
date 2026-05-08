@@ -12,6 +12,7 @@ from app.services.job_detector import detect_secrets, format_secret_for_applicat
 
 REMOTEOK_URL = "https://remoteok.com/remote-jobs.json"
 WWR_URL = "https://weworkremotely.com/remote-jobs.rss"
+REMOTEJOBS_URL = "https://www.remotejobs.com/jobs"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; AutoApply/1.0)",
@@ -114,6 +115,120 @@ class RemoteOKScraper:
         return jobs
 
 
+class RemoteJobsDotComScraper:
+    """Scraper for remotejobs.com — tries Next.js __NEXT_DATA__ first, falls back to HTML."""
+
+    async def fetch_jobs(self, filters: FilterConfig) -> list[Job]:
+        async with httpx.AsyncClient(headers=HEADERS, timeout=20, follow_redirects=True) as client:
+            try:
+                res = await client.get(REMOTEJOBS_URL)
+                res.raise_for_status()
+            except Exception as e:
+                print(f"[RemoteJobs] fetch failed: {e}")
+                return []
+
+        jobs = self._parse_next_data(res.text) or self._parse_html(res.text)
+        out = []
+        for job in jobs:
+            combined = job.title + " " + job.description
+            if not _matches_filters(combined, filters):
+                continue
+            out.append(_enrich_job(job))
+        return out
+
+    def _parse_next_data(self, html: str) -> list[Job]:
+        """Extract jobs from Next.js __NEXT_DATA__ JSON blob if present."""
+        import json as _json
+        soup = BeautifulSoup(html, "html.parser")
+        tag = soup.find("script", {"id": "__NEXT_DATA__"})
+        if not tag or not tag.string:
+            return []
+        try:
+            data = _json.loads(tag.string)
+        except Exception:
+            return []
+
+        # Walk the props tree looking for a list that has job-like objects
+        jobs_list = self._dig_jobs(data)
+        if not jobs_list:
+            return []
+
+        out = []
+        for item in jobs_list:
+            if not isinstance(item, dict):
+                continue
+            title = item.get("title") or item.get("position") or item.get("name") or ""
+            company = item.get("company") or item.get("companyName") or item.get("organization") or ""
+            desc = _strip_html(item.get("description") or item.get("body") or item.get("details") or "")
+            slug = item.get("slug") or item.get("id") or ""
+            url = item.get("url") or item.get("applyUrl") or item.get("applicationUrl") or (
+                f"https://www.remotejobs.com/jobs/{slug}" if slug else REMOTEJOBS_URL
+            )
+            if not title:
+                continue
+            job_id = f"rjdc_{re.sub(r'[^\\w]', '_', str(slug or title))[:50]}"
+            out.append(Job(
+                id=job_id,
+                source="remotejobs",
+                title=str(title),
+                company=str(company),
+                description=desc,
+                apply_url=str(url),
+                location=item.get("location") or "Remote",
+                tags=_extract_tags(title + " " + desc),
+            ))
+        return out
+
+    def _dig_jobs(self, obj, depth: int = 0) -> list:
+        """Recursively search a JSON tree for a list of job-like dicts."""
+        if depth > 8:
+            return []
+        if isinstance(obj, list) and len(obj) > 0 and isinstance(obj[0], dict):
+            # Check if items look like jobs
+            sample = obj[0]
+            job_keys = {"title", "position", "description", "company", "companyName"}
+            if job_keys & set(sample.keys()):
+                return obj
+        if isinstance(obj, dict):
+            for v in obj.values():
+                result = self._dig_jobs(v, depth + 1)
+                if result:
+                    return result
+        return []
+
+    def _parse_html(self, html: str) -> list[Job]:
+        """Fallback: parse job cards from raw HTML."""
+        soup = BeautifulSoup(html, "html.parser")
+        out = []
+        # Common selectors used by job boards
+        for card in soup.select("article, [class*='job-card'], [class*='job_card'], [class*='JobCard'], [class*='listing']"):
+            title_el = card.find(["h2", "h3", "h4"]) or card.find(attrs={"class": re.compile(r"title|position", re.I)})
+            company_el = card.find(attrs={"class": re.compile(r"company|employer|org", re.I)})
+            link_el = card.find("a", href=True)
+
+            title = title_el.get_text(strip=True) if title_el else ""
+            company = company_el.get_text(strip=True) if company_el else ""
+            href = link_el["href"] if link_el else ""
+            if href and not href.startswith("http"):
+                href = "https://www.remotejobs.com" + href
+
+            if not title:
+                continue
+            slug = re.sub(r"[^\w-]", "-", title.lower())[:60]
+            job_id = f"rjdc_{slug}_{abs(hash(href)) % 100000}"
+            out.append(Job(
+                id=job_id,
+                source="remotejobs",
+                title=title,
+                company=company,
+                description="",
+                apply_url=href or REMOTEJOBS_URL,
+                location="Remote",
+                tags=_extract_tags(title),
+            ))
+        return out
+
+
 class WeWorkRemotelyScraper:
     async def fetch_jobs(self, filters: FilterConfig) -> list[Job]:
         async with httpx.AsyncClient(headers=HEADERS, timeout=20, follow_redirects=True) as client:
@@ -211,9 +326,11 @@ def _extract_tags(text: str) -> list[str]:
 async def scrape_all(filters: FilterConfig) -> list[Job]:
     rok = RemoteOKScraper()
     wwr = WeWorkRemotelyScraper()
+    rjdc = RemoteJobsDotComScraper()
     results = await asyncio.gather(
         rok.fetch_jobs(filters),
         wwr.fetch_jobs(filters),
+        rjdc.fetch_jobs(filters),
         return_exceptions=True,
     )
     jobs: list[Job] = []
