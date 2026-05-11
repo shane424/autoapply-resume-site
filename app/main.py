@@ -1,5 +1,6 @@
 from pathlib import Path
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -15,6 +16,14 @@ STORAGE_DIR.mkdir(exist_ok=True)
 print_startup_check()
 
 app = FastAPI(title="AutoApply Resume Site")
+
+# Allow Chrome extension (and any localhost origin) to call the API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
 
 # Static file mounts
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "frontend" / "static")), name="static")

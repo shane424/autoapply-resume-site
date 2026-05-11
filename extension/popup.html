@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AutoApply Resume Assistant</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 420px;
+      min-height: 480px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      color: #333;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 18px 20px;
+      color: white;
+      text-align: center;
+    }
+    .header h1 { font-size: 18px; margin-bottom: 3px; }
+    .header p  { font-size: 11px; opacity: 0.85; }
+
+    .tabs {
+      display: flex;
+      background: white;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    .tab {
+      flex: 1;
+      padding: 10px 4px;
+      text-align: center;
+      cursor: pointer;
+      background: white;
+      border: none;
+      font-size: 12px;
+      font-weight: 600;
+      color: #777;
+      transition: color 0.2s;
+    }
+    .tab.active { color: #667eea; border-bottom: 2px solid #667eea; margin-bottom: -2px; }
+
+    .tab-content { display: none; padding: 18px; background: white; max-height: 420px; overflow-y: auto; }
+    .tab-content.active { display: block; }
+
+    .form-group { margin-bottom: 13px; }
+    .form-group label { display: block; margin-bottom: 4px; font-weight: 600; font-size: 12px; color: #444; }
+    .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1.5px solid #ddd;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #667eea; }
+    .form-group textarea { resize: vertical; min-height: 110px; }
+
+    .btn {
+      width: 100%;
+      padding: 11px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.2s;
+    }
+    .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .btn-primary:hover { opacity: 0.9; }
+
+    .info-box {
+      background: #e8f4fd;
+      border-left: 3px solid #667eea;
+      padding: 10px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.5;
+      margin-top: 12px;
+    }
+    .small { font-size: 11px; color: #888; margin-top: 4px; }
+
+    .status-msg { padding: 8px 10px; border-radius: 5px; margin-top: 8px; font-size: 12px; text-align: center; }
+    .status-msg.success { background: #d4edda; color: #155724; }
+    .status-msg.error   { background: #f8d7da; color: #721c24; }
+
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 14px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-card .num   { font-size: 22px; font-weight: bold; }
+    .stat-card .label { font-size: 10px; opacity: 0.9; margin-top: 2px; }
+
+    .boards-list a {
+      display: block;
+      padding: 10px 12px;
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 7px;
+      margin-bottom: 8px;
+      text-decoration: none;
+      color: #333;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .boards-list a:hover { background: #e9ecef; }
+    .boards-list a span { display: block; font-size: 11px; color: #888; font-weight: normal; margin-top: 1px; }
+    .boards-list .dashboard-link {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border-color: transparent;
+    }
+    .boards-list .dashboard-link span { color: rgba(255,255,255,0.8); }
+    .boards-list .dashboard-link:hover { opacity: 0.9; background: linear-gradient(135deg, #667eea, #764ba2); }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>AutoApply Resume Assistant</h1>
+    <p>Powered by your local AutoApply server</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="setup">Server</button>
+    <button class="tab" data-tab="profile">Profile</button>
+    <button class="tab" data-tab="resume">Resume</button>
+    <button class="tab" data-tab="boards">Job Boards</button>
+    <button class="tab" data-tab="stats">Stats</button>
+  </div>
+
+  <!-- Server Tab -->
+  <div id="setup-tab" class="tab-content active">
+    <div class="info-box" style="margin-bottom:14px;">
+      <strong>How it works:</strong><br>
+      Browse to any job posting → click the floating button → the extension sends
+      the job description to your local AutoApply server, which tailors your resume
+      using Claude AI and saves the PDF to your Documents folder.
+    </div>
+    <div class="form-group">
+      <label>AutoApply Server URL</label>
+      <input type="text" id="serverUrl" placeholder="http://localhost:8000">
+      <p class="small">Default: http://localhost:8000 — change only if you moved the port</p>
+    </div>
+    <button class="btn btn-primary" id="saveServer">Save & Test Connection</button>
+    <div id="serverStatus"></div>
+
+    <div class="info-box" style="margin-top:14px;">
+      <strong>Start the server:</strong><br>
+      <code style="font-size:11px; background:rgba(0,0,0,0.07); padding:3px 5px; border-radius:3px;">
+        uvicorn app.main:app --reload --port 8000
+      </code><br>
+      Run this from your project folder with the venv activated.
+    </div>
+  </div>
+
+  <!-- Profile Tab -->
+  <div id="profile-tab" class="tab-content">
+    <div class="form-group"><label>First Name</label><input type="text" id="firstName" placeholder="Shane"></div>
+    <div class="form-group"><label>Last Name</label><input type="text" id="lastName" placeholder="Smith"></div>
+    <div class="form-group"><label>Email</label><input type="email" id="email" placeholder="shane@example.com"></div>
+    <div class="form-group"><label>Phone</label><input type="tel" id="phone" placeholder="(937) 499-3269"></div>
+    <div class="form-group"><label>Address</label><input type="text" id="address" placeholder="123 Main St"></div>
+    <div class="form-group"><label>City</label><input type="text" id="city" placeholder="Cincinnati"></div>
+    <div class="form-group"><label>State</label><input type="text" id="state" placeholder="OH"></div>
+    <div class="form-group"><label>ZIP</label><input type="text" id="zip" placeholder="45202"></div>
+    <div class="form-group"><label>LinkedIn</label><input type="url" id="linkedin" placeholder="https://linkedin.com/in/yourname"></div>
+    <div class="form-group"><label>Website / Portfolio</label><input type="url" id="website" placeholder="https://yoursite.com"></div>
+    <button class="btn btn-primary" id="saveProfile">Save Profile</button>
+    <div id="profileStatus"></div>
+  </div>
+
+  <!-- Resume Tab -->
+  <div id="resume-tab" class="tab-content">
+    <div class="form-group">
+      <label>Your Master Resume (plain text)</label>
+      <textarea id="baseResume" placeholder="Paste your complete resume here. The extension reads this and sends it to the server for tailoring when you click 'Tailor Resume' on a job page."></textarea>
+    </div>
+    <button class="btn btn-primary" id="saveResume">Save Resume</button>
+    <div id="resumeStatus"></div>
+    <div class="info-box">
+      <strong>Tip:</strong> Include everything — summary, all experience, all skills, education.
+      The server tailors it per job without removing real experience.
+    </div>
+  </div>
+
+  <!-- Job Boards Tab -->
+  <div id="boards-tab" class="tab-content">
+    <p style="font-size:12px; color:#666; margin-bottom:12px;">
+      Open your AutoApply dashboard to browse scraped remote jobs, or jump straight to a job board.
+      Once you're on a job page, click the floating button to tailor your resume.
+    </p>
+    <div class="boards-list">
+      <a href="#" id="open-dashboard" class="dashboard-link">
+        AutoApply Dashboard
+        <span>Browse jobs scraped from all sources</span>
+      </a>
+      <a href="https://remoteok.com" target="_blank">
+        RemoteOK
+        <span>remoteok.com — tech remote jobs</span>
+      </a>
+      <a href="https://weworkremotely.com" target="_blank">
+        We Work Remotely
+        <span>weworkremotely.com</span>
+      </a>
+      <a href="https://www.remotejobs.com/jobs" target="_blank">
+        RemoteJobs.com
+        <span>remotejobs.com — backend, engineering roles</span>
+      </a>
+      <a href="https://www.linkedin.com/jobs/search/?f_WT=2" target="_blank">
+        LinkedIn Remote Jobs
+        <span>linkedin.com</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Stats Tab -->
+  <div id="stats-tab" class="tab-content">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="num" id="statsJobsViewed">0</div><div class="label">Jobs Viewed</div></div>
+      <div class="stat-card"><div class="num" id="statsResumesOptimized">0</div><div class="label">Resumes Tailored</div></div>
+      <div class="stat-card"><div class="num" id="statsFormsAutofilled">0</div><div class="label">Forms Filled</div></div>
+      <div class="stat-card"><div class="num" id="statsAvgScore">0%</div><div class="label">Avg Match Score</div></div>
+    </div>
+    <button class="btn btn-primary" id="clearStats" style="margin-top:16px;">Reset Statistics</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

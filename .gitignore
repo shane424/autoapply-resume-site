@@ -9,3 +9,8 @@ storage/tailored/
 *.egg-info/
 dist/
 .pytest_cache/
+
+# Local-only Claude config (personal paths/credentials — never commit)
+CLAUDE.local.md
+# Personal files accidentally dropped in repo root
+*.pdf

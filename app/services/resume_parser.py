@@ -265,6 +265,24 @@ def _parse_education(lines: list[str]) -> list[EducationEntry]:
     return entries
 
 
+def parse_resume_text(raw_text: str) -> ParsedResume:
+    """Parse resume from already-extracted text (e.g. sent from the browser extension)."""
+    sections = _parse_sections(raw_text)
+    contact = _extract_contact(sections["header"])
+    experience = _parse_experience(sections["experience"])
+    skills = _parse_skills(sections["skills"])
+    education = _parse_education(sections["education"])
+    summary = " ".join(l.strip() for l in sections["summary"] if l.strip())
+    return ParsedResume(
+        raw_text=raw_text,
+        contact=contact,
+        summary=summary,
+        experience=experience,
+        skills=skills,
+        education=education,
+    )
+
+
 def parse_resume(file_path: str) -> ParsedResume:
     path = Path(file_path)
     suffix = path.suffix.lower()
