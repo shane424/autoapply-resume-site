@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto Job Applicator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      width: 450px;
+      min-height: 500px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+    }
+    
+    .header {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      text-align: center;
+      border-bottom: 3px solid #667eea;
+    }
+    
+    .header h1 {
+      font-size: 20px;
+      color: #667eea;
+      margin-bottom: 5px;
+    }
+    
+    .header p {
+      font-size: 12px;
+      color: #666;
+    }
+    
+    .tabs {
+      display: flex;
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      background: white;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: #666;
+      transition: all 0.3s;
+    }
+    
+    .tab:hover {
+      background: #f5f5f5;
+    }
+    
+    .tab.active {
+      color: #667eea;
+      border-bottom: 3px solid #667eea;
+    }
+    
+    .tab-content {
+      display: none;
+      padding: 20px;
+      background: white;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      font-size: 13px;
+      color: #333;
+    }
+    
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+      transition: border-color 0.3s;
+    }
+    
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .form-group textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 10px;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+    
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+    
+    .status-message {
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+      font-size: 13px;
+      text-align: center;
+    }
+    
+    .status-message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .status-message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .job-search-form {
+      margin-bottom: 20px;
+    }
+    
+    .checkbox-group {
+      margin-top: 10px;
+    }
+    
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      font-weight: normal;
+      cursor: pointer;
+    }
+    
+    .checkbox-group input[type="checkbox"] {
+      width: auto;
+      margin-right: 8px;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .stat-card .number {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .stat-card .label {
+      font-size: 11px;
+      opacity: 0.9;
+    }
+    
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.5;
+      margin-top: 15px;
+    }
+    
+    .small-text {
+      font-size: 11px;
+      color: #666;
+      margin-top: 5px;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #667eea;
+    }
+    
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>💼 Auto Job Applicator</h1>
+    <p>Automated job search & resume optimization</p>
+  </div>
+  
+  <div class="tabs">
+    <button class="tab active" data-tab="setup">Setup</button>
+    <button class="tab" data-tab="profile">Profile</button>
+    <button class="tab" data-tab="resume">Resume</button>
+    <button class="tab" data-tab="search">Job Search</button>
+    <button class="tab" data-tab="stats">Stats</button>
+  </div>
+  
+  <!-- Setup Tab -->
+  <div id="setup-tab" class="tab-content active">
+    <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107; margin-bottom: 20px;">
+      <strong>⚠️ Required: OpenAI API Key</strong><br>
+      <p style="margin-top: 8px; font-size: 12px;">This extension uses ChatGPT (GPT-4) to optimize your resumes. You need your own API key from OpenAI.</p>
+    </div>
+    
+    <div class="form-group">
+      <label>OpenAI API Key *</label>
+      <input type="password" id="openaiApiKey" placeholder="sk-proj-...">
+      <p class="small-text">Your API key is stored locally and never shared</p>
+    </div>
+    
+    <button class="btn btn-primary" id="saveApiKey">Save API Key</button>
+    <div id="apiKeyStatus"></div>
+    
+    <div class="info-box" style="margin-top: 20px;">
+      <strong>🔑 How to get your OpenAI API key:</strong><br>
+      <ol style="margin-top: 8px; margin-left: 20px; font-size: 12px; line-height: 1.6;">
+        <li>Go to <a href="https://platform.openai.com/api-keys" target="_blank" style="color: #667eea;">platform.openai.com/api-keys</a></li>
+        <li>Sign in or create an account</li>
+        <li>Click "Create new secret key"</li>
+        <li>Copy the key and paste it above</li>
+        <li>Add payment method if needed (pay-as-you-go)</li>
+      </ol>
+      <p style="margin-top: 8px; font-size: 11px; color: #666;">
+        <strong>Cost:</strong> ~$0.02-0.05 per resume optimization (GPT-4o model)
+      </p>
+    </div>
+      <strong>🔑 How to get your API key:</strong>
+      <ol style="margin: 10px 0 0 20px; font-size: 12px; line-height: 1.6;">
+        <li>Go to <a href="https://console.anthropic.com" target="_blank" style="color: #667eea;">console.anthropic.com</a></li>
+        <li>Sign up or log in</li>
+        <li>Go to "API Keys" section</li>
+        <li>Click "Create Key"</li>
+        <li>Copy the key and paste it above</li>
+      </ol>
+      <p style="margin-top: 10px; font-size: 11px; color: #666;">
+        <strong>Note:</strong> Anthropic charges per API use. Each resume optimization costs ~$0.01-0.05. 
+        Check their pricing at <a href="https://www.anthropic.com/pricing" target="_blank" style="color: #667eea;">anthropic.com/pricing</a>
+      </p>
+    </div>
+  </div>
+  
+  <!-- Profile Tab -->
+  <div id="profile-tab" class="tab-content">
+    <div class="form-group">
+      <label>First Name</label>
+      <input type="text" id="firstName" placeholder="John">
+    </div>
+    <div class="form-group">
+      <label>Last Name</label>
+      <input type="text" id="lastName" placeholder="Doe">
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="email" placeholder="john.doe@email.com">
+    </div>
+    <div class="form-group">
+      <label>Phone</label>
+      <input type="tel" id="phone" placeholder="(555) 123-4567">
+    </div>
+    <div class="form-group">
+      <label>Address</label>
+      <input type="text" id="address" placeholder="123 Main St">
+    </div>
+    <div class="form-group">
+      <label>City</label>
+      <input type="text" id="city" placeholder="San Francisco">
+    </div>
+    <div class="form-group">
+      <label>State</label>
+      <input type="text" id="state" placeholder="CA">
+    </div>
+    <div class="form-group">
+      <label>ZIP Code</label>
+      <input type="text" id="zip" placeholder="94102">
+    </div>
+    <div class="form-group">
+      <label>LinkedIn Profile</label>
+      <input type="url" id="linkedin" placeholder="https://linkedin.com/in/johndoe">
+    </div>
+    <div class="form-group">
+      <label>Website/Portfolio</label>
+      <input type="url" id="website" placeholder="https://johndoe.com">
+    </div>
+    <button class="btn btn-primary" id="saveProfile">Save Profile</button>
+    <div id="profileStatus"></div>
+  </div>
+  
+  <!-- Resume Tab -->
+  <div id="resume-tab" class="tab-content">
+    <div class="form-group">
+      <label>Your Master Resume</label>
+      <textarea id="baseResume" placeholder="Paste your complete resume here. Include all sections: contact info, summary, experience, education, skills..."></textarea>
+      <p class="small-text">This will be optimized for each job automatically</p>
+    </div>
+    <button class="btn btn-primary" id="saveResume">Save Resume</button>
+    <div id="resumeStatus"></div>
+    
+    <div class="info-box">
+      <strong>💡 Tip:</strong> Keep this comprehensive! Include all your experience, skills, and achievements. The extension will automatically tailor it for each job.
+    </div>
+  </div>
+  
+  <!-- Job Search Tab -->
+  <div id="search-tab" class="tab-content">
+    <div class="job-search-form">
+      <div class="form-group">
+        <label>Job Title / Keywords</label>
+        <input type="text" id="searchJobTitle" placeholder="e.g., Software Engineer">
+      </div>
+      <div class="form-group">
+        <label>Location</label>
+        <input type="text" id="searchLocation" placeholder="e.g., Remote, San Francisco">
+      </div>
+      <div class="form-group">
+        <label>Experience Level</label>
+        <input type="text" id="searchExperience" placeholder="e.g., Senior, Mid-Level">
+      </div>
+      <div class="form-group">
+        <label>Additional Keywords</label>
+        <input type="text" id="searchKeywords" placeholder="e.g., Python, React, AWS">
+      </div>
+      <div class="form-group">
+        <label>Job Boards</label>
+        <div class="checkbox-group">
+          <label>
+            <input type="checkbox" class="job-board" value="indeed" checked>
+            Indeed
+          </label>
+          <label>
+            <input type="checkbox" class="job-board" value="monster" checked>
+            Monster
+          </label>
+          <label>
+            <input type="checkbox" class="job-board" value="dice" checked>
+            Dice
+          </label>
+          <label>
+            <input type="checkbox" class="job-board" value="linkedin">
+            LinkedIn
+          </label>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="startJobSearch">🔍 Search for Jobs</button>
+      <div id="searchStatus"></div>
+    </div>
+    
+    <div class="info-box">
+      <strong>🚀 How it works:</strong> Click search and we'll find jobs matching your criteria. Then just browse to any job page and click the floating button to auto-fill applications!
+    </div>
+  </div>
+  
+  <!-- Stats Tab -->
+  <div id="stats-tab" class="tab-content">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="number" id="statsJobsViewed">0</div>
+        <div class="label">Jobs Viewed</div>
+      </div>
+      <div class="stat-card">
+        <div class="number" id="statsResumesOptimized">0</div>
+        <div class="label">Resumes Optimized</div>
+      </div>
+      <div class="stat-card">
+        <div class="number" id="statsFormsAutofilled">0</div>
+        <div class="label">Forms Auto-Filled</div>
+      </div>
+      <div class="stat-card">
+        <div class="number" id="statsAvgMatchScore">0%</div>
+        <div class="label">Avg Match Score</div>
+      </div>
+    </div>
+    
+    <div class="info-box" style="margin-top: 20px;">
+      <strong>📊 Your Job Search Progress</strong><br>
+      Track your automated job application journey. The extension monitors your activity and shows your optimization success rate.
+    </div>
+    
+    <button class="btn btn-secondary" id="clearStats" style="margin-top: 15px;">Clear Statistics</button>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
