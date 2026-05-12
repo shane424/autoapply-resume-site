@@ -86,9 +86,9 @@ def _extract_contact(header_lines: list[str]) -> dict:
     # Require at least one digit cluster like "937-499-3269" or "(937) 499-3269"
     phone_re = re.compile(r"[\+]?\(?\d{3}\)?[\s.\-]\d{3}[\s.\-]\d{4}")
     linkedin_re = re.compile(r"linkedin\.com/in/[\w-]+", re.IGNORECASE)
-    # "City, ST" — city name is 1-3 words, followed by a two-letter state code
-    # Anchored to avoid greedily matching "SHANE SMITH Cincinnati, OH"
-    city_re = re.compile(r"\b([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+){0,2}),\s*([A-Z]{2})\b")
+    # "City, ST" — each city word must start uppercase then have lowercase letters
+    # (e.g. "Cincinnati", "New York") which excludes all-caps names like "SHANE SMITH"
+    city_re = re.compile(r"\b([A-Z][a-z][a-zA-Z]*(?:\s[A-Z][a-z][a-zA-Z]*)?),\s*([A-Z]{2})\b")
 
     full_text = " ".join(header_lines)
     email_m = email_re.search(full_text)
