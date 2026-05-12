@@ -1,17 +1,15 @@
 import yaml
 from pathlib import Path
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from app.models.settings import AppSettings
 
 CONFIG_PATH = Path(__file__).parent.parent / "config.yaml"
 
 
 class EnvSettings(BaseSettings):
-    anthropic_api_key: str = ""
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    anthropic_api_key: str = ""
 
 
 def load_app_settings() -> AppSettings:
