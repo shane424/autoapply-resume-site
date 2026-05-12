@@ -7,7 +7,7 @@ CONFIG_PATH = Path(__file__).parent.parent / "config.yaml"
 
 
 class EnvSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     anthropic_api_key: str = ""
 
