@@ -10,8 +10,8 @@ from app.models.job import Job
 from app.models.settings import FilterConfig
 from app.services.job_detector import detect_secrets, format_secret_for_application
 
-REMOTEOK_URL = "https://remoteok.com/remote-jobs.json"
-WWR_URL = "https://weworkremotely.com/remote-jobs.rss"
+REMOTIVE_URL = "https://remotive.com/api/remote-jobs"
+JOBICY_URL = "https://jobicy.com/?feed=job_feed"
 REMOTEJOBS_URL = "https://www.remotejobs.com/jobs"
 
 HEADERS = {
@@ -80,36 +80,38 @@ def _enrich_job(job: Job) -> Job:
     return job
 
 
-class RemoteOKScraper:
+class RemotiveScraper:
+    """Remotive.com — free JSON API, no key required."""
+
     async def fetch_jobs(self, filters: FilterConfig) -> list[Job]:
         async with httpx.AsyncClient(headers=HEADERS, timeout=20, follow_redirects=True) as client:
             try:
-                res = await client.get(REMOTEOK_URL)
+                res = await client.get(REMOTIVE_URL)
                 res.raise_for_status()
             except Exception as e:
-                print(f"[RemoteOK] fetch failed: {e}")
+                print(f"[Remotive] fetch failed: {e}")
                 return []
 
-        raw = res.json()
+        raw = res.json().get("jobs", [])
         jobs = []
         for item in raw:
-            if not isinstance(item, dict) or "id" not in item:
+            if not isinstance(item, dict):
                 continue
             desc = _strip_html(item.get("description", ""))
-            combined = item.get("position", "") + " " + desc
+            combined = item.get("title", "") + " " + desc
             if not _matches_filters(combined, filters):
                 continue
             job = Job(
-                id=f"remoteok_{item['id']}",
-                source="remoteok",
-                title=item.get("position", ""),
-                company=item.get("company", ""),
+                id=f"remotive_{item.get('id', abs(hash(item.get('url', ''))) % 1_000_000)}",
+                source="remotive",
+                title=item.get("title", ""),
+                company=item.get("company_name", ""),
                 description=desc,
-                apply_url=item.get("url", f"https://remoteok.com/l/{item['id']}"),
-                location="Remote",
+                apply_url=item.get("url", REMOTIVE_URL),
+                location=item.get("candidate_required_location") or "Remote",
                 salary=item.get("salary") or None,
                 tags=[t for t in (item.get("tags") or []) if t],
-                posted_at=_parse_epoch(item.get("date")),
+                posted_at=_parse_iso(item.get("publication_date")),
             )
             jobs.append(_enrich_job(job))
         return jobs
@@ -230,14 +232,16 @@ class RemoteJobsDotComScraper:
         return out
 
 
-class WeWorkRemotelyScraper:
+class JobicyScraper:
+    """Jobicy.com — free RSS feed, no key required, tech-heavy remote jobs."""
+
     async def fetch_jobs(self, filters: FilterConfig) -> list[Job]:
         async with httpx.AsyncClient(headers=HEADERS, timeout=20, follow_redirects=True) as client:
             try:
-                res = await client.get(WWR_URL)
+                res = await client.get(JOBICY_URL)
                 res.raise_for_status()
             except Exception as e:
-                print(f"[WWR] fetch failed: {e}")
+                print(f"[Jobicy] fetch failed: {e}")
                 return []
 
         soup = BeautifulSoup(res.text, "xml")
@@ -248,25 +252,26 @@ class WeWorkRemotelyScraper:
             link_el = item.find("link")
             desc_el = item.find("description")
             guid_el = item.find("guid")
+            company_el = item.find("jobicy:hiringOrganization") or item.find("hiringOrganization")
 
-            title_raw = title_el.text.strip() if title_el else ""
+            title = title_el.text.strip() if title_el else ""
             link = link_el.text.strip() if link_el else (guid_el.text.strip() if guid_el else "")
             desc_raw = _strip_html(desc_el.text if desc_el else "")
+            company = company_el.text.strip() if company_el else ""
 
-            if ": " in title_raw:
-                company, title = title_raw.split(": ", 1)
-            else:
-                company, title = "", title_raw
+            # Fallback: some feeds put "Company: Title" in the title element
+            if not company and ": " in title:
+                company, title = title.split(": ", 1)
 
             if not _matches_filters(title + " " + desc_raw, filters):
                 continue
 
             slug = re.sub(r"[^\w-]", "-", title.lower())[:60]
-            job_id = f"wwr_{slug}_{abs(hash(link)) % 100000}"
+            job_id = f"jobicy_{slug}_{abs(hash(link)) % 100000}"
 
             job = Job(
                 id=job_id,
-                source="wwr",
+                source="jobicy",
                 title=title.strip(),
                 company=company.strip(),
                 description=desc_raw,
@@ -300,11 +305,11 @@ def _strip_html(html: str) -> str:
     return soup.get_text(separator="\n").strip()
 
 
-def _parse_epoch(value) -> Optional[datetime]:
+def _parse_iso(value) -> Optional[datetime]:
     if not value:
         return None
     try:
-        return datetime.fromtimestamp(int(value))
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except Exception:
         return None
 
@@ -325,12 +330,12 @@ def _extract_tags(text: str) -> list[str]:
 
 
 async def scrape_all(filters: FilterConfig) -> list[Job]:
-    rok = RemoteOKScraper()
-    wwr = WeWorkRemotelyScraper()
+    remotive = RemotiveScraper()
+    jobicy = JobicyScraper()
     rjdc = RemoteJobsDotComScraper()
     results = await asyncio.gather(
-        rok.fetch_jobs(filters),
-        wwr.fetch_jobs(filters),
+        remotive.fetch_jobs(filters),
+        jobicy.fetch_jobs(filters),
         rjdc.fetch_jobs(filters),
         return_exceptions=True,
     )
