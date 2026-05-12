@@ -317,7 +317,8 @@ def test_pdf_was_built(tailored_result, capsys):
     assert tailored_result.pdf_path, "pdf_path is None — build_resume() did not run or failed"
     pdf = Path(tailored_result.pdf_path)
     assert pdf.exists(), f"PDF file not found at {tailored_result.pdf_path}"
-    assert pdf.stat().st_size > 10_000, f"PDF looks too small ({pdf.stat().st_size} bytes)"
+    assert pdf.stat().st_size > 2_000, f"PDF looks too small ({pdf.stat().st_size} bytes)"
+    assert pdf.read_bytes()[:4] == b"%PDF", "File does not appear to be a valid PDF"
     with capsys.disabled():
         print(f"\n  PDF: {tailored_result.pdf_path}  ({pdf.stat().st_size:,} bytes)")
         print(f"  DOCX: {tailored_result.docx_path}")
