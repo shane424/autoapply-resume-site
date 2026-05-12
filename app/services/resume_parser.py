@@ -2,6 +2,27 @@ import re
 from pathlib import Path
 from app.models.resume import ParsedResume, ExperienceEntry, EducationEntry
 
+# Phrases that indicate prompt injection attempts hidden in resume PDFs
+_INJECTION_PATTERNS = re.compile(
+    r"ignore\s+(?:all\s+)?(?:previous|prior|above)\s+instructions?"
+    r"|disregard\s+(?:all\s+)?(?:previous|prior|above)"
+    r"|you\s+are\s+now\s+(?:a\s+)?(?:an?\s+)?\w+"
+    r"|(?:approve|hire|select|recommend)\s+this\s+(?:candidate|resume|applicant)"
+    r"|act\s+as\s+(?:if\s+)?(?:you\s+are|a[n]?\s+)",
+    re.IGNORECASE,
+)
+
+
+def _sanitize_resume_text(text: str) -> str:
+    """Strip lines containing prompt injection attempts from extracted PDF text."""
+    clean_lines = []
+    for line in text.splitlines():
+        if _INJECTION_PATTERNS.search(line):
+            print(f"[resume_parser] Stripped injection attempt: {line[:80]!r}")
+            continue
+        clean_lines.append(line)
+    return "\n".join(clean_lines)
+
 
 def _extract_text_from_pdf(path: Path) -> str:
     import pdfplumber
@@ -14,13 +35,13 @@ def _extract_text_from_pdf(path: Path) -> str:
                 t = page.extract_text()
             if t:
                 text_parts.append(t)
-    return "\n".join(text_parts)
+    return _sanitize_resume_text("\n".join(text_parts))
 
 
 def _extract_text_from_docx(path: Path) -> str:
     from docx import Document
     doc = Document(str(path))
-    return "\n".join(p.text for p in doc.paragraphs)
+    return _sanitize_resume_text("\n".join(p.text for p in doc.paragraphs))
 
 
 def _detect_section(line: str) -> str | None:
