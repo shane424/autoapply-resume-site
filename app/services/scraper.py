@@ -166,7 +166,8 @@ class RemoteJobsDotComScraper:
             )
             if not title:
                 continue
-            job_id = f"rjdc_{re.sub(r'[^\\w]', '_', str(slug or title))[:50]}"
+            _slug_clean = re.sub(r"[^\w]", "_", str(slug or title))[:50]
+            job_id = f"rjdc_{_slug_clean}"
             out.append(Job(
                 id=job_id,
                 source="remotejobs",
