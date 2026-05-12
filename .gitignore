@@ -14,3 +14,5 @@ dist/
 CLAUDE.local.md
 # Personal files accidentally dropped in repo root
 *.pdf
+# Resume source files — never commit, gitignored so git never removes them
+resume/
