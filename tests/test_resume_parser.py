@@ -9,6 +9,14 @@ def test_extract_contact_email():
     assert "janedoe" in contact.get("linkedin", "")
 
 
+def test_extract_contact_city_not_greedy():
+    # Regression: city regex was matching "SHANE SMITH Cincinnati, OH" as the location
+    lines = ["SHANE SMITH", "ShaneLSmith24@gmail.com · 937-499-3269 · Cincinnati, OH"]
+    contact = _extract_contact(lines)
+    assert contact.get("location") == "Cincinnati, OH"
+    assert "SHANE" not in contact.get("location", "")
+
+
 def test_parse_skills_comma():
     lines = ["Python, FastAPI, PostgreSQL, Docker"]
     skills = _parse_skills(lines)

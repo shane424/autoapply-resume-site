@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 import httpx
@@ -101,11 +102,29 @@ async def tailor_resume(resume: ParsedResume, job: Job) -> TailoredResumeContent
         )
         for e in (data.get("education") or [])
     ]
+    # Strip any skills the LLM invented that aren't in the original resume.
+    # Build a lowercase token set from original skills + all bullet text.
+    original_tokens = set()
+    for s in resume.skills:
+        original_tokens.update(re.findall(r"[a-z0-9#+.\-]+", s.lower()))
+    for exp in resume.experience:
+        for b in exp.bullets:
+            original_tokens.update(re.findall(r"[a-z0-9#+.\-]+", b.lower()))
+    original_tokens.update(re.findall(r"[a-z0-9#+.\-]+", resume.raw_text.lower()))
+
+    clean_skills = []
+    for skill in data.get("skills", []):
+        skill_tokens = set(re.findall(r"[a-z0-9#+.\-]+", skill.lower()))
+        if skill_tokens & original_tokens:
+            clean_skills.append(skill)
+        else:
+            print(f"[llm_client] Removed hallucinated skill: {skill!r}")
+
     return TailoredResumeContent(
         job_id=job.id,
         summary=data.get("summary", ""),
         experience=experience,
-        skills=data.get("skills", []),
+        skills=clean_skills,
         education=education,
         keywords_added=data.get("keywords_added", []),
         cover_letter=data.get("cover_letter", ""),
