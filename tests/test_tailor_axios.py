@@ -171,12 +171,12 @@ def axios_job():
 
 @pytest.fixture(scope="module")
 def parsed_resume():
-    resume_path = os.getenv("RESUME_PATH")
+    resume_path = os.getenv("RESUME_PATH") or _load_dotenv_value("RESUME_PATH")
     if not resume_path:
         pytest.skip(
-            "Set RESUME_PATH to your resume file.\n"
-            "  PowerShell:  $env:RESUME_PATH='C:\\path\\to\\resume.pdf'\n"
-            "  bash:        export RESUME_PATH=/path/to/resume.pdf"
+            "Set RESUME_PATH in .env or environment.\n"
+            "  .env:        RESUME_PATH=C:\\path\\to\\resume.pdf\n"
+            "  PowerShell:  $env:RESUME_PATH='C:\\path\\to\\resume.pdf'"
         )
     from app.services.resume_parser import parse_resume
     return parse_resume(resume_path)
@@ -221,15 +221,19 @@ def tailored_result(axios_job, parsed_resume):
     return result
 
 
-def _load_dotenv_key() -> str:
-    """Read ANTHROPIC_API_KEY from .env without requiring python-dotenv."""
+def _load_dotenv_value(key: str) -> str:
+    """Read any key from .env without requiring python-dotenv."""
     env_file = Path(__file__).parent.parent / ".env"
     if not env_file.exists():
         return ""
     for line in env_file.read_text().splitlines():
-        if line.startswith("ANTHROPIC_API_KEY"):
+        if line.startswith(f"{key}="):
             return line.split("=", 1)[-1].strip().strip('"').strip("'")
     return ""
+
+
+def _load_dotenv_key() -> str:
+    return _load_dotenv_value("ANTHROPIC_API_KEY")
 
 
 # ---------------------------------------------------------------------------
