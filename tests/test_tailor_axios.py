@@ -203,6 +203,10 @@ def tailored_result(axios_job, parsed_resume):
 
     result = asyncio.run(tailor_resume(parsed_resume, job))
 
+    # Build PDF + DOCX (same step the API runs after the LLM call)
+    from app.services.resume_builder import build_resume
+    result = build_resume(result, parsed_resume)
+
     # Save JSON output for inspection
     out = OUTPUT_DIR / "axios_tailored_output.json"
     out.write_text(
@@ -210,6 +214,10 @@ def tailored_result(axios_job, parsed_resume):
         encoding="utf-8",
     )
     print(f"\n[output] Tailored resume saved → {out}")
+    if result.pdf_path:
+        print(f"[output] PDF → {result.pdf_path}")
+    if result.docx_path:
+        print(f"[output] DOCX → {result.docx_path}")
     return result
 
 
@@ -299,3 +307,28 @@ def test_ats_score(axios_job, tailored_result, capsys):
 def test_cover_letter_present(tailored_result):
     assert tailored_result.cover_letter, "Expected a cover letter in the tailored output"
     assert len(tailored_result.cover_letter) > 100
+
+
+def test_pdf_was_built(tailored_result, capsys):
+    assert tailored_result.pdf_path, "pdf_path is None — build_resume() did not run or failed"
+    pdf = Path(tailored_result.pdf_path)
+    assert pdf.exists(), f"PDF file not found at {tailored_result.pdf_path}"
+    assert pdf.stat().st_size > 10_000, f"PDF looks too small ({pdf.stat().st_size} bytes)"
+    with capsys.disabled():
+        print(f"\n  PDF: {tailored_result.pdf_path}  ({pdf.stat().st_size:,} bytes)")
+        print(f"  DOCX: {tailored_result.docx_path}")
+
+
+def test_titles_were_reframed(tailored_result, parsed_resume):
+    """LLM should reframe obscure titles to industry-standard equivalents."""
+    obscure = {"hvr application engineer", "sql developer"}
+    original_titles = {exp.title.lower() for exp in parsed_resume.experience}
+    tailored_titles = {exp.title.lower() for exp in tailored_result.experience}
+    reframed = obscure & original_titles  # titles that were obscure in the original
+    if not reframed:
+        pytest.skip("No obscure titles found in parsed resume to check")
+    # At least one obscure title should be different in the tailored output
+    still_obscure = reframed & tailored_titles
+    assert still_obscure != reframed, (
+        f"LLM did not reframe any obscure titles. Still present: {still_obscure}"
+    )
