@@ -28,7 +28,7 @@ async def _call_claude(prompt: str, model: str) -> str:
     )
     message = await client.messages.create(
         model=model,
-        max_tokens=4096,
+        max_tokens=8192,
         messages=[{"role": "user", "content": prompt}],
     )
     return message.content[0].text
