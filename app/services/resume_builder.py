@@ -209,15 +209,22 @@ def build_resume(content: TailoredResumeContent, original_resume: ParsedResume, 
         today = datetime.now()
         date_str = f"{today.month}{today.day:02d}{today.year}"
         stem = _safe_filename(contact.get("name", "resume")) or "resume"
+        _generic = {"unknown company", "unknown", "unknown position", ""}
         try:
-            if job_company:
-                company_slug = _safe_filename(job_company).lower()
+            clean_company = (job_company or "").strip()
+            if clean_company.lower() not in _generic:
+                company_slug = _safe_filename(clean_company).lower()
                 dest_dir = Path(settings.output_dir) / f"{company_slug}_{date_str}"
             else:
-                dest_dir = Path(settings.output_dir)
+                dest_dir = Path(settings.output_dir) / date_str
             dest_dir.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(pdf_path, dest_dir / f"{stem}.pdf")
-            shutil.copy2(docx_path, dest_dir / f"{stem}.docx")
+            out_pdf  = dest_dir / f"{stem}.pdf"
+            out_docx = dest_dir / f"{stem}.docx"
+            shutil.copy2(pdf_path,  out_pdf)
+            shutil.copy2(docx_path, out_docx)
+            # Point pdf_path/docx_path at the user-visible Documents location
+            content.pdf_path  = str(out_pdf)
+            content.docx_path = str(out_docx)
         except Exception as e:
             # Non-fatal — internal files are still written successfully
             print(f"[resume_builder] Warning: could not copy to output_dir: {e}")

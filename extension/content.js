@@ -86,6 +86,35 @@ function extractJobInfo(site) {
       if (el?.content)   { jobData.company = el.content.trim(); break; }
     }
 
+    // JSON-LD structured data (reliable on Greenhouse, Ashby, Lever, etc.)
+    if (!jobData.company) {
+      document.querySelectorAll('script[type="application/ld+json"]').forEach(s => {
+        if (jobData.company) return;
+        try {
+          const d = JSON.parse(s.textContent);
+          const org = d?.hiringOrganization?.name || d?.author?.name;
+          if (org) jobData.company = org;
+        } catch {}
+      });
+    }
+
+    // Page title pattern: "Backend Engineer at Sticker Mule | ..."
+    if (!jobData.company) {
+      const titleText = document.title || '';
+      const m = titleText.match(/\bat\s+([^|–\-]+?)(?:\s*[|–\-]|$)/i);
+      if (m) jobData.company = m[1].trim();
+    }
+
+    // URL-based fallback for known ATS platforms
+    if (!jobData.company) {
+      const host = window.location.hostname;
+      const path = window.location.pathname.split('/').filter(Boolean);
+      if (host.includes('ashbyhq.com') && path[0])          jobData.company = path[0];
+      else if (host.includes('greenhouse.io') && path[0])   jobData.company = path[0];
+      else if (host.includes('lever.co') && path[0])        jobData.company = path[0];
+      else if (host.includes('bamboohr.com'))                jobData.company = host.split('.')[0];
+    }
+
     const locationCandidates = [
       document.querySelector('[class*="location" i]'),
       document.querySelector('[data-location]'),
