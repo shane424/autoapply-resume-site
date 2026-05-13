@@ -46,7 +46,7 @@ async def _run_tailor(job_id: str) -> None:
                 "Check your API key and network connection."
             )
 
-        tailored = build_resume(tailored, resume)
+        tailored = build_resume(tailored, resume, job_company=job.company)
         _tailor_status[job_id] = {
             "status": "done",
             "result": tailored,
@@ -114,7 +114,7 @@ async def tailor_inline(body: InlineTailorRequest):
             detail=f"LLM timed out after {TAILOR_TIMEOUT_SECS}s. Check your API key.",
         )
 
-    tailored = build_resume(tailored, resume)
+    tailored = build_resume(tailored, resume, job_company=job.company)
 
     # Build a plain-text version of the tailored resume for the extension to display/copy
     lines = []

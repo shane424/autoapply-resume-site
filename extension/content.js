@@ -1,9 +1,6 @@
 // Content script - runs on all job sites
 console.log('AutoApply: Content script loaded');
 
-let sidebarInjected = false;
-let currentJobData = null;
-
 // Score the page to detect if it's a job posting
 function detectJobPage() {
   const url = window.location.href.toLowerCase();
@@ -27,6 +24,7 @@ function detectJobPage() {
     'weworkremotely.com', 'remoteok.io', 'remoteok.com', 'remotejobs.com',
     'wellfound.com', 'greenhouse.io', 'lever.co', 'workable.com',
     'smartrecruiters.com', 'bamboohr.com', 'jobvite.com', 'icims.com',
+    'ashbyhq.com', 'rippling.com',
   ];
   jobBoardDomains.forEach(domain => { if (hostname.includes(domain)) jobScore += 10; });
 
@@ -126,241 +124,21 @@ function extractJobInfo(site) {
   return jobData;
 }
 
-function findFormFields() {
-  const fields = {
-    firstName: null, lastName: null, email: null, phone: null,
-    resume: null, coverLetter: null, address: null, city: null,
-    state: null, zip: null, linkedin: null, website: null, customFields: [],
-  };
-
-  document.querySelectorAll('input, textarea, select').forEach(input => {
-    const combined = `${input.id} ${input.name} ${input.placeholder} ${findLabelForInput(input)}`.toLowerCase();
-    if (combined.includes('first') && combined.includes('name')) fields.firstName = input;
-    else if (combined.includes('last') && combined.includes('name')) fields.lastName = input;
-    else if (combined.includes('email')) fields.email = input;
-    else if (combined.includes('phone') || combined.includes('mobile')) fields.phone = input;
-    else if (combined.includes('resume') || combined.includes('cv')) fields.resume = input;
-    else if (combined.includes('cover') && combined.includes('letter')) fields.coverLetter = input;
-    else if (combined.includes('address') && !combined.includes('email')) fields.address = input;
-    else if (combined.includes('city')) fields.city = input;
-    else if (combined.includes('state') || combined.includes('province')) fields.state = input;
-    else if (combined.includes('zip') || combined.includes('postal')) fields.zip = input;
-    else if (combined.includes('linkedin')) fields.linkedin = input;
-    else if (combined.includes('website') || combined.includes('portfolio')) fields.website = input;
-    else if (!['hidden','submit','button'].includes(input.type)) {
-      fields.customFields.push({ element: input, label: findLabelForInput(input), type: input.type });
-    }
-  });
-
-  return fields;
-}
-
-function findLabelForInput(input) {
-  if (input.id) {
-    const label = document.querySelector(`label[for="${input.id}"]`);
-    if (label) return label.innerText;
+// Respond to popup asking for job data from this tab
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'getJobData') {
+    const site = detectJobPage();
+    const jobData = extractJobInfo(site || 'generic');
+    sendResponse({ found: !!site, jobData });
+    return true;
   }
-  const parent = input.closest('div, fieldset, td');
-  if (parent) {
-    const label = parent.querySelector('label');
-    if (label) return label.innerText;
-  }
-  return '';
-}
-
-function injectFloatingButton() {
-  if (document.getElementById('autoapply-fab')) return;
-  const fab = document.createElement('div');
-  fab.id = 'autoapply-fab';
-  fab.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-    <rect x="2" y="7" width="20" height="14" rx="2"></rect>
-    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-  </svg>`;
-  fab.title = 'AutoApply Resume Assistant';
-  fab.addEventListener('click', toggleSidebar);
-  document.body.appendChild(fab);
-}
-
-function toggleSidebar() {
-  const existing = document.getElementById('autoapply-sidebar');
-  if (existing) { existing.remove(); sidebarInjected = false; }
-  else injectSidebar(false);
-}
-
-function injectSidebar(force = false) {
-  if (sidebarInjected) return;
-  const sidebar = document.createElement('div');
-  sidebar.id = 'autoapply-sidebar';
-  sidebar.innerHTML = `
-    <div class="autoapply-header">
-      <h3>AutoApply Assistant</h3>
-      <button id="autoapply-close">×</button>
-    </div>
-    <div class="autoapply-content">
-      <div id="autoapply-job-info"></div>
-      <div id="autoapply-result"></div>
-      <div id="autoapply-autofill"></div>
-      <div id="autoapply-status"></div>
-    </div>`;
-  document.body.appendChild(sidebar);
-  sidebarInjected = true;
-  document.getElementById('autoapply-close').addEventListener('click', toggleSidebar);
-  loadJobInfo(force);
-}
-
-async function loadJobInfo(force = false) {
-  const jobInfoEl = document.getElementById('autoapply-job-info');
-  const site = detectJobPage() || (force ? 'generic' : null);
-
-  if (!site) {
-    jobInfoEl.innerHTML = '<p class="autoapply-error">No job posting detected on this page.</p>';
-    return;
-  }
-
-  currentJobData = extractJobInfo(site);
-
-  jobInfoEl.innerHTML = `
-    <div class="autoapply-card">
-      <h4>Job Detected</h4>
-      <p><strong>${currentJobData.title || 'Unknown title'}</strong></p>
-      <p>${currentJobData.company || ''}</p>
-      <p class="autoapply-location">${currentJobData.location || ''}</p>
-      <button id="autoapply-optimize-btn" class="autoapply-btn-primary">
-        Tailor Resume for This Job
-      </button>
-    </div>`;
-
-  document.getElementById('autoapply-optimize-btn').addEventListener('click', optimizeResume);
-  checkForApplicationForm();
-}
-
-function checkForApplicationForm() {
-  const autofillEl = document.getElementById('autoapply-autofill');
-  const fields = findFormFields();
-  const fieldCount = Object.values(fields).filter(f => f && !Array.isArray(f)).length;
-
-  if (fieldCount > 0 || fields.customFields.length > 0) {
-    autofillEl.innerHTML = `
-      <div class="autoapply-card">
-        <h4>Application Form Detected</h4>
-        <p>Found ${fieldCount} standard fields</p>
-        <button id="autoapply-autofill-btn" class="autoapply-btn-primary">Auto-Fill Form</button>
-      </div>`;
-    document.getElementById('autoapply-autofill-btn').addEventListener('click', () => autoFillForm(fields));
-  }
-}
-
-async function optimizeResume() {
-  const statusEl = document.getElementById('autoapply-status');
-  const resultEl = document.getElementById('autoapply-result');
-  statusEl.innerHTML = '<div class="autoapply-loading">Tailoring resume… this takes ~20-30s</div>';
-
-  try {
-    const { baseResume } = await chrome.storage.local.get(['baseResume']);
-
-    const response = await chrome.runtime.sendMessage({
-      action: 'optimizeResume',
-      jobData: currentJobData,
-      baseResume: baseResume || '',
-    });
-
-    if (response.success) {
-      let secretHtml = '';
-      if (response.secretInstructions?.length) {
-        secretHtml = `<div class="autoapply-secret">
-          Secret phrase detected: <strong>${response.secretInstructions.join(', ')}</strong><br>
-          Included in cover letter.
-        </div>`;
-      }
-
-      resultEl.innerHTML = `
-        <div class="autoapply-card">
-          <h4>Resume Tailored!</h4>
-          <div class="autoapply-score">
-            <span class="autoapply-score-num">${response.matchScore}%</span> match
-          </div>
-          <div class="autoapply-keywords">
-            ${(response.matchedKeywords || []).map(k => `<span class="autoapply-kw">${k}</span>`).join('')}
-          </div>
-          ${secretHtml}
-          <button id="autoapply-copy-resume" class="autoapply-btn-primary">Copy Resume Text</button>
-          ${response.coverLetter ? '<button id="autoapply-copy-cover" class="autoapply-btn-secondary">Copy Cover Letter</button>' : ''}
-          ${response.pdfPath ? `<p class="autoapply-pdf-note">PDF saved to your Documents folder</p>` : ''}
-        </div>`;
-
-      document.getElementById('autoapply-copy-resume').addEventListener('click', () => {
-        navigator.clipboard.writeText(response.optimizedResume)
-          .then(() => alert('Resume copied! Paste into Word or Google Docs and save as PDF.'));
-      });
-
-      if (response.coverLetter) {
-        document.getElementById('autoapply-copy-cover')?.addEventListener('click', () => {
-          navigator.clipboard.writeText(response.coverLetter)
-            .then(() => alert('Cover letter copied!'));
-        });
-      }
-
-      statusEl.innerHTML = '<div class="autoapply-success">Ready to apply!</div>';
-    } else {
-      statusEl.innerHTML = `<div class="autoapply-error">
-        ${response.error || 'Optimization failed.'}<br><br>
-        Make sure the AutoApply server is running:<br>
-        <code>uvicorn app.main:app --reload --port 8000</code>
-      </div>`;
-    }
-  } catch (err) {
-    console.error('AutoApply error:', err);
-    statusEl.innerHTML = `<div class="autoapply-error">${err.message}</div>`;
-  }
-}
-
-async function autoFillForm(fields) {
-  const statusEl = document.getElementById('autoapply-status');
-  statusEl.innerHTML = '<div class="autoapply-loading">Filling form…</div>';
-
-  const { userProfile } = await chrome.storage.local.get(['userProfile']);
-  if (!userProfile) {
-    statusEl.innerHTML = '<div class="autoapply-error">Set your profile in the extension popup first.</div>';
-    return;
-  }
-
-  const fill = (el, val) => {
-    if (!el || !val) return;
-    el.value = val;
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-    el.style.backgroundColor = '#d4edda';
-    setTimeout(() => { el.style.backgroundColor = ''; }, 2000);
-  };
-
-  fill(fields.firstName, userProfile.firstName);
-  fill(fields.lastName, userProfile.lastName);
-  fill(fields.email, userProfile.email);
-  fill(fields.phone, userProfile.phone);
-  fill(fields.address, userProfile.address);
-  fill(fields.city, userProfile.city);
-  fill(fields.state, userProfile.state);
-  fill(fields.zip, userProfile.zip);
-  fill(fields.linkedin, userProfile.linkedin);
-  fill(fields.website, userProfile.website);
-
-  const filled = Object.values(fields).filter(f => f && !Array.isArray(f) && f.value).length;
-
-  const { stats = {} } = await chrome.storage.local.get(['stats']);
-  stats.formsAutofilled = (stats.formsAutofilled || 0) + 1;
-  await chrome.storage.local.set({ stats });
-
-  statusEl.innerHTML = `<div class="autoapply-success">Filled ${filled} fields. Review and submit!</div>`;
-}
+});
 
 function initialize() {
   const site = detectJobPage();
   if (site) {
-    console.log('AutoApply: Job posting detected on', site);
-    injectFloatingButton();
     chrome.runtime.sendMessage({ action: 'jobPageDetected', site, url: window.location.href });
-
-    const { stats = {} } = chrome.storage.local.get(['stats']).then(({ stats = {} }) => {
+    chrome.storage.local.get(['stats']).then(({ stats = {} }) => {
       stats.jobsViewed = (stats.jobsViewed || 0) + 1;
       chrome.storage.local.set({ stats });
     });
@@ -373,23 +151,11 @@ if (document.readyState === 'loading') {
   initialize();
 }
 
-// Message from popup — "Tailor Resume for Current Page" button
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'tailorCurrentPage') {
-    const existing = document.getElementById('autoapply-sidebar');
-    if (existing) { existing.remove(); sidebarInjected = false; }
-    injectSidebar(true);
-    sendResponse({ ok: true });
-  }
-});
-
 // Handle SPA navigation (LinkedIn, etc.)
 let lastUrl = location.href;
 new MutationObserver(() => {
   if (location.href !== lastUrl) {
     lastUrl = location.href;
-    const existing = document.getElementById('autoapply-sidebar');
-    if (existing) { existing.remove(); sidebarInjected = false; }
     initialize();
   }
 }).observe(document, { subtree: true, childList: true });

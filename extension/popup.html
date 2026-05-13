@@ -14,12 +14,12 @@
     }
     .header {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 18px 20px;
+      padding: 14px 20px;
       color: white;
       text-align: center;
     }
-    .header h1 { font-size: 18px; margin-bottom: 3px; }
-    .header p  { font-size: 11px; opacity: 0.85; }
+    .header h1 { font-size: 16px; margin-bottom: 2px; }
+    .header p  { font-size: 10px; opacity: 0.85; }
 
     .tabs {
       display: flex;
@@ -28,26 +28,26 @@
     }
     .tab {
       flex: 1;
-      padding: 10px 4px;
+      padding: 9px 4px;
       text-align: center;
       cursor: pointer;
       background: white;
       border: none;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       color: #777;
       transition: color 0.2s;
     }
     .tab.active { color: #667eea; border-bottom: 2px solid #667eea; margin-bottom: -2px; }
 
-    .tab-content { display: none; padding: 18px; background: white; max-height: 420px; overflow-y: auto; }
+    .tab-content { display: none; padding: 16px; background: white; max-height: 480px; overflow-y: auto; }
     .tab-content.active { display: block; }
 
-    .form-group { margin-bottom: 13px; }
+    .form-group { margin-bottom: 11px; }
     .form-group label { display: block; margin-bottom: 4px; font-weight: 600; font-size: 12px; color: #444; }
     .form-group input, .form-group textarea {
       width: 100%;
-      padding: 9px 10px;
+      padding: 8px 10px;
       border: 1.5px solid #ddd;
       border-radius: 6px;
       font-size: 12px;
@@ -55,55 +55,126 @@
       transition: border-color 0.2s;
     }
     .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #667eea; }
-    .form-group textarea { resize: vertical; min-height: 110px; }
+    .form-group textarea { resize: vertical; min-height: 100px; }
 
     .btn {
       width: 100%;
-      padding: 11px;
+      padding: 10px;
       border: none;
       border-radius: 6px;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
-      margin-top: 8px;
+      margin-top: 6px;
       transition: opacity 0.2s;
     }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:hover:not(:disabled) { opacity: 0.9; }
+    .btn-outline { background: white; color: #667eea; border: 1.5px solid #667eea; }
+    .btn-outline:hover:not(:disabled) { background: #f0f0ff; }
 
     .info-box {
       background: #e8f4fd;
       border-left: 3px solid #667eea;
-      padding: 10px 12px;
+      padding: 9px 12px;
       border-radius: 4px;
       font-size: 12px;
       line-height: 1.5;
-      margin-top: 12px;
     }
-    .small { font-size: 11px; color: #888; margin-top: 4px; }
+    .small { font-size: 11px; color: #888; margin-top: 3px; }
 
     .status-msg { padding: 8px 10px; border-radius: 5px; margin-top: 8px; font-size: 12px; text-align: center; }
     .status-msg.success { background: #d4edda; color: #155724; }
     .status-msg.error   { background: #f8d7da; color: #721c24; }
 
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    /* Tailor tab */
+    .job-card {
+      background: #f8f9fa;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .job-title { font-size: 14px; font-weight: 700; color: #222; margin-bottom: 3px; }
+    .job-company { font-size: 12px; color: #666; }
+
+    .detecting-msg { font-size: 12px; color: #888; text-align: center; padding: 14px 0; }
+
+    .tailor-loading {
+      text-align: center;
+      padding: 14px;
+      color: #667eea;
+      font-size: 12px;
+      display: none;
+    }
+    .tailor-loading::before {
+      content: '';
+      display: block;
+      width: 28px;
+      height: 28px;
+      margin: 0 auto 8px;
+      border: 3px solid #e0e0e0;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .result-box { margin-top: 10px; }
+    .result-score {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .score-num { font-size: 32px; font-weight: 800; color: #667eea; }
+    .score-label { font-size: 13px; color: #555; }
+
+    .kw-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+    .kw-chip {
+      background: #e3f2fd;
+      color: #1565c0;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+
+    .pdf-note { font-size: 11px; color: #888; text-align: center; margin-top: 6px; }
+
+    /* Server settings collapsible */
+    .server-details { margin-top: 14px; border-top: 1px solid #eee; padding-top: 12px; }
+    .server-details summary {
+      font-size: 11px;
+      color: #999;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+    }
+    .server-details summary::before { content: '▸ '; }
+    .server-details[open] summary::before { content: '▾ '; }
+    .server-inner { margin-top: 10px; }
+
+    /* Stats */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
     .stat-card {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
-      padding: 14px;
+      padding: 12px;
       border-radius: 8px;
       text-align: center;
     }
-    .stat-card .num   { font-size: 22px; font-weight: bold; }
+    .stat-card .num   { font-size: 20px; font-weight: bold; }
     .stat-card .label { font-size: 10px; opacity: 0.9; margin-top: 2px; }
 
+    /* Job boards */
     .boards-list a {
       display: block;
-      padding: 10px 12px;
+      padding: 9px 12px;
       background: #f8f9fa;
       border: 1px solid #e9ecef;
       border-radius: 7px;
-      margin-bottom: 8px;
+      margin-bottom: 7px;
       text-decoration: none;
       color: #333;
       font-size: 13px;
@@ -128,41 +199,41 @@
   </div>
 
   <div class="tabs">
-    <button class="tab active" data-tab="setup">Server</button>
+    <button class="tab active" data-tab="tailor">Tailor</button>
     <button class="tab" data-tab="profile">Profile</button>
     <button class="tab" data-tab="resume">Resume</button>
-    <button class="tab" data-tab="boards">Job Boards</button>
+    <button class="tab" data-tab="boards">Boards</button>
     <button class="tab" data-tab="stats">Stats</button>
   </div>
 
-  <!-- Server Tab -->
-  <div id="setup-tab" class="tab-content active">
-    <div class="info-box" style="margin-bottom:14px;">
-      <strong>How it works:</strong><br>
-      Browse to any job posting → click the floating button → the extension sends
-      the job description to your local AutoApply server, which tailors your resume
-      using Claude AI and saves the PDF to your Documents folder.
-    </div>
-    <div class="form-group">
-      <label>AutoApply Server URL</label>
-      <input type="text" id="serverUrl" placeholder="http://localhost:8000">
-      <p class="small">Default: http://localhost:8000 — change only if you moved the port</p>
-    </div>
-    <button class="btn btn-primary" id="saveServer">Save & Test Connection</button>
-    <div id="serverStatus"></div>
-
-    <div class="info-box" style="margin-top:14px;">
-      <strong>Start the server:</strong><br>
-      <code style="font-size:11px; background:rgba(0,0,0,0.07); padding:3px 5px; border-radius:3px;">
-        uvicorn app.main:app --reload --port 8000
-      </code><br>
-      Run this from your project folder with the venv activated.
+  <!-- Tailor Tab -->
+  <div id="tailor-tab" class="tab-content active">
+    <div id="job-info-card">
+      <p class="detecting-msg">Detecting job on current page…</p>
     </div>
 
-    <button class="btn btn-primary" id="tailorCurrentPage" style="margin-top:14px;">
-      Tailor Resume for Current Page
+    <button class="btn btn-primary" id="tailor-btn" style="display:none;">
+      Tailor Resume for This Job
     </button>
-    <div id="tailorStatus"></div>
+
+    <div class="tailor-loading" id="tailor-loading">Tailoring resume… ~20–30s</div>
+
+    <div id="tailor-result"></div>
+
+    <details class="server-details">
+      <summary>Server settings</summary>
+      <div class="server-inner">
+        <div class="form-group" style="margin-top:8px;">
+          <label>AutoApply Server URL</label>
+          <input type="text" id="serverUrl" placeholder="http://localhost:8000">
+        </div>
+        <button class="btn btn-primary" id="saveServer" style="font-size:12px; padding:8px;">Save &amp; Test Connection</button>
+        <div id="serverStatus"></div>
+        <p class="small" style="margin-top:8px;">
+          Start server: <code style="background:#f0f0f0; padding:2px 4px; border-radius:3px; font-size:10px;">uvicorn app.main:app --reload --port 8000</code>
+        </p>
+      </div>
+    </details>
   </div>
 
   <!-- Profile Tab -->
@@ -197,7 +268,7 @@
     <button class="btn btn-primary" id="uploadResume">Upload to Server</button>
     <div id="uploadStatus"></div>
 
-    <div style="margin:14px 0 10px; text-align:center; font-size:11px; color:#aaa; border-top:1px solid #eee; padding-top:10px;">or paste resume text as fallback</div>
+    <div style="margin:12px 0 8px; text-align:center; font-size:11px; color:#aaa; border-top:1px solid #eee; padding-top:10px;">or paste resume text as fallback</div>
 
     <div class="form-group">
       <label>Resume Text (optional)</label>
@@ -209,9 +280,8 @@
 
   <!-- Job Boards Tab -->
   <div id="boards-tab" class="tab-content">
-    <p style="font-size:12px; color:#666; margin-bottom:12px;">
+    <p style="font-size:12px; color:#666; margin-bottom:10px;">
       Open your AutoApply dashboard to browse scraped remote jobs, or jump straight to a job board.
-      Once you're on a job page, click the floating button to tailor your resume.
     </p>
     <div class="boards-list">
       <a href="#" id="open-dashboard" class="dashboard-link">
@@ -245,7 +315,7 @@
       <div class="stat-card"><div class="num" id="statsFormsAutofilled">0</div><div class="label">Forms Filled</div></div>
       <div class="stat-card"><div class="num" id="statsAvgScore">0%</div><div class="label">Avg Match Score</div></div>
     </div>
-    <button class="btn btn-primary" id="clearStats" style="margin-top:16px;">Reset Statistics</button>
+    <button class="btn btn-primary" id="clearStats" style="margin-top:14px;">Reset Statistics</button>
   </div>
 
   <script src="popup.js"></script>

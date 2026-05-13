@@ -179,7 +179,7 @@ def _build_docx(content: TailoredResumeContent, contact: dict, out_path: Path) -
     doc.save(str(out_path))
 
 
-def build_resume(content: TailoredResumeContent, original_resume: ParsedResume) -> TailoredResumeContent:
+def build_resume(content: TailoredResumeContent, original_resume: ParsedResume, job_company: str = "") -> TailoredResumeContent:
     from app.config import load_app_settings
 
     job_dir = STORAGE_DIR / content.job_id
@@ -205,12 +205,19 @@ def build_resume(content: TailoredResumeContent, original_resume: ParsedResume) 
     # Copy to user-configured output directory (if set), named after the person
     settings = load_app_settings()
     if settings.output_dir:
-        out_dir = Path(settings.output_dir)
+        from datetime import datetime
+        today = datetime.now()
+        date_str = f"{today.month}{today.day:02d}{today.year}"
+        stem = _safe_filename(contact.get("name", "resume")) or "resume"
         try:
-            out_dir.mkdir(parents=True, exist_ok=True)
-            stem = _safe_filename(contact.get("name", "resume")) or "resume"
-            shutil.copy2(pdf_path, out_dir / f"{stem}.pdf")
-            shutil.copy2(docx_path, out_dir / f"{stem}.docx")
+            if job_company:
+                company_slug = _safe_filename(job_company).lower()
+                dest_dir = Path(settings.output_dir) / f"{company_slug}_{date_str}"
+            else:
+                dest_dir = Path(settings.output_dir)
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(pdf_path, dest_dir / f"{stem}.pdf")
+            shutil.copy2(docx_path, dest_dir / f"{stem}.docx")
         except Exception as e:
             # Non-fatal — internal files are still written successfully
             print(f"[resume_builder] Warning: could not copy to output_dir: {e}")

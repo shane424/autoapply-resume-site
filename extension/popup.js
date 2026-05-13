@@ -1,5 +1,6 @@
 // Popup script
 const DEFAULT_SERVER = 'http://localhost:8000';
+let currentJobData = null;
 
 // Tab switching
 document.querySelectorAll('.tab').forEach(tab => {
@@ -24,9 +25,118 @@ async function loadSavedData() {
 
   if (data.baseResume) document.getElementById('baseResume').value = data.baseResume;
   if (data.stats) updateStats(data.stats);
+
+  loadCurrentJob();
 }
 
-// Server — save and test
+// ── Tailor Tab ────────────────────────────────────────────────────────────────
+
+async function loadCurrentJob() {
+  const jobInfoEl = document.getElementById('job-info-card');
+  const tailorBtn = document.getElementById('tailor-btn');
+
+  jobInfoEl.innerHTML = '<p class="detecting-msg">Detecting job on current page…</p>';
+  tailorBtn.style.display = 'none';
+
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) { showNoJob(); return; }
+
+    chrome.tabs.sendMessage(tab.id, { action: 'getJobData' }, (resp) => {
+      if (chrome.runtime.lastError || !resp) { showNoJob(); return; }
+
+      const jd = resp.jobData;
+      if (jd && jd.description && jd.description.length > 100) {
+        currentJobData = jd;
+        jobInfoEl.innerHTML = `
+          <div class="job-card">
+            <div class="job-title">${escHtml(jd.title || 'Job Posting')}</div>
+            ${jd.company ? `<div class="job-company">${escHtml(jd.company)}</div>` : ''}
+          </div>`;
+        tailorBtn.style.display = 'block';
+      } else {
+        showNoJob();
+      }
+    });
+  } catch {
+    showNoJob();
+  }
+}
+
+function showNoJob() {
+  document.getElementById('job-info-card').innerHTML = `
+    <p class="detecting-msg">
+      No job detected on this page.<br>
+      Navigate to a job listing and reopen the popup.
+    </p>`;
+  document.getElementById('tailor-btn').style.display = 'none';
+}
+
+document.getElementById('tailor-btn').addEventListener('click', async () => {
+  if (!currentJobData) return;
+
+  const tailorBtn    = document.getElementById('tailor-btn');
+  const loadingEl    = document.getElementById('tailor-loading');
+  const resultEl     = document.getElementById('tailor-result');
+
+  tailorBtn.disabled = true;
+  tailorBtn.textContent = 'Tailoring…';
+  loadingEl.style.display = 'block';
+  resultEl.innerHTML = '';
+
+  const { baseResume } = await chrome.storage.local.get(['baseResume']);
+
+  const response = await new Promise(resolve => {
+    chrome.runtime.sendMessage({
+      action: 'optimizeResume',
+      jobData: currentJobData,
+      baseResume: baseResume || '',
+    }, resolve);
+  });
+
+  loadingEl.style.display = 'none';
+  tailorBtn.disabled = false;
+  tailorBtn.textContent = 'Tailor Again';
+
+  if (response && response.success) {
+    const kws = (response.matchedKeywords || [])
+      .map(k => `<span class="kw-chip">${escHtml(k)}</span>`).join('');
+
+    resultEl.innerHTML = `
+      <div class="result-box">
+        <div class="result-score">
+          <span class="score-num">${response.matchScore}%</span>
+          <span class="score-label">match</span>
+        </div>
+        ${kws ? `<div class="kw-chips">${kws}</div>` : ''}
+        <button id="copy-resume-btn" class="btn btn-primary">Copy Resume Text</button>
+        ${response.coverLetter ? '<button id="copy-cover-btn" class="btn btn-outline">Copy Cover Letter</button>' : ''}
+        ${response.pdfPath ? '<p class="pdf-note">PDF saved to your Documents folder</p>' : ''}
+      </div>`;
+
+    document.getElementById('copy-resume-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(response.optimizedResume).then(() => {
+        const btn = document.getElementById('copy-resume-btn');
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = orig; }, 2000);
+      });
+    });
+
+    document.getElementById('copy-cover-btn')?.addEventListener('click', () => {
+      navigator.clipboard.writeText(response.coverLetter).then(() => {
+        const btn = document.getElementById('copy-cover-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy Cover Letter'; }, 2000);
+      });
+    });
+  } else {
+    resultEl.innerHTML = `<div class="status-msg error">${escHtml((response && response.error) || 'Tailoring failed. Check the server is running.')}</div>`;
+  }
+});
+
+// ── Server settings ───────────────────────────────────────────────────────────
+
 document.getElementById('saveServer').addEventListener('click', async () => {
   const url = document.getElementById('serverUrl').value.trim() || DEFAULT_SERVER;
   await chrome.storage.local.set({ serverUrl: url });
@@ -41,13 +151,12 @@ document.getElementById('saveServer').addEventListener('click', async () => {
       showStatus('serverStatus', 'Server responded but returned unexpected status.', 'error');
     }
   } catch {
-    showStatus('serverStatus',
-      'Could not connect. Start the server: uvicorn app.main:app --reload --port 8000',
-      'error');
+    showStatus('serverStatus', 'Could not connect. Make sure the server is running.', 'error');
   }
 });
 
-// Profile — save
+// ── Profile ───────────────────────────────────────────────────────────────────
+
 document.getElementById('saveProfile').addEventListener('click', async () => {
   const profile = {};
   ['firstName','lastName','email','phone','address','city','state','zip','linkedin','website']
@@ -56,13 +165,13 @@ document.getElementById('saveProfile').addEventListener('click', async () => {
   showStatus('profileStatus', 'Profile saved!', 'success');
 });
 
-// Resume — file name display
+// ── Resume ────────────────────────────────────────────────────────────────────
+
 document.getElementById('resumeFile').addEventListener('change', (e) => {
   const file = e.target.files[0];
   document.getElementById('fileName').textContent = file ? file.name : 'No file selected';
 });
 
-// Resume — upload PDF/DOCX to server
 document.getElementById('uploadResume').addEventListener('click', async () => {
   const file = document.getElementById('resumeFile').files[0];
   if (!file) { showStatus('uploadStatus', 'Choose a PDF or DOCX file first.', 'error'); return; }
@@ -85,7 +194,6 @@ document.getElementById('uploadResume').addEventListener('click', async () => {
   }
 });
 
-// Resume — save text
 document.getElementById('saveResume').addEventListener('click', async () => {
   const resume = document.getElementById('baseResume').value;
   if (!resume.trim()) { showStatus('resumeStatus', 'Please paste your resume text.', 'error'); return; }
@@ -93,21 +201,8 @@ document.getElementById('saveResume').addEventListener('click', async () => {
   showStatus('resumeStatus', 'Resume text saved!', 'success');
 });
 
-// Server tab — tailor resume for the current tab's page
-document.getElementById('tailorCurrentPage').addEventListener('click', async () => {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab) { showStatus('tailorStatus', 'No active tab found.', 'error'); return; }
-  showStatus('tailorStatus', 'Opening sidebar on current page…', 'success');
-  chrome.tabs.sendMessage(tab.id, { action: 'tailorCurrentPage' }, (resp) => {
-    if (chrome.runtime.lastError || !resp?.ok) {
-      showStatus('tailorStatus', 'Could not reach the page. Reload it and try again.', 'error');
-    } else {
-      window.close();
-    }
-  });
-});
+// ── Job Boards ────────────────────────────────────────────────────────────────
 
-// Dashboard link — open the local server dashboard
 document.getElementById('open-dashboard').addEventListener('click', async (e) => {
   e.preventDefault();
   const { serverUrl } = await chrome.storage.local.get(['serverUrl']);
@@ -115,7 +210,8 @@ document.getElementById('open-dashboard').addEventListener('click', async (e) =>
   chrome.tabs.create({ url });
 });
 
-// Stats — clear
+// ── Stats ─────────────────────────────────────────────────────────────────────
+
 document.getElementById('clearStats').addEventListener('click', async () => {
   if (!confirm('Reset all statistics?')) return;
   const empty = { jobsViewed: 0, resumesOptimized: 0, formsAutofilled: 0, totalMatchScore: 0, matchScoreCount: 0 };
@@ -133,10 +229,18 @@ function updateStats(stats) {
   document.getElementById('statsAvgScore').textContent = avg + '%';
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 function showStatus(elId, msg, type) {
   const el = document.getElementById(elId);
   el.innerHTML = `<div class="status-msg ${type}">${msg}</div>`;
   setTimeout(() => { el.innerHTML = ''; }, 4000);
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 chrome.storage.onChanged.addListener((changes, ns) => {
