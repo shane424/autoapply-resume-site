@@ -183,7 +183,6 @@ def build_resume(
     content: TailoredResumeContent,
     original_resume: ParsedResume,
     job_company: str = "",
-    match_score: int = 0,
 ) -> TailoredResumeContent:
     from app.config import load_app_settings
     from datetime import datetime
@@ -193,11 +192,9 @@ def build_resume(
 
     contact = original_resume.contact
     name = contact.get("name", "")
-    stem = _safe_filename(name) if name else "Resume"
-    score_sfx = f"_{match_score}" if match_score else ""
-    filename = f"{stem}{score_sfx}"  # e.g. "Shane_Smith_95"
+    stem = _safe_filename(name) if name else "Resume"  # e.g. "Shane_Smith"
 
-    docx_path = job_dir / f"{filename}.docx"
+    docx_path = job_dir / f"{stem}.docx"
     _build_docx(content, contact, docx_path)
     content.docx_path = str(docx_path)
 
@@ -206,7 +203,7 @@ def build_resume(
             "reportlab is not installed. Run: pip install reportlab==4.2.5\n"
             "Your DOCX was generated successfully at: " + str(docx_path)
         )
-    pdf_path = job_dir / f"{filename}.pdf"
+    pdf_path = job_dir / f"{stem}.pdf"
     _build_pdf(content, contact, pdf_path)
     content.pdf_path = str(pdf_path)
 
@@ -226,8 +223,8 @@ def build_resume(
                 folder = f"{date_str}_{time_str}"   # e.g. 5132026_0751
             dest_dir = Path(settings.output_dir) / folder
             dest_dir.mkdir(parents=True, exist_ok=True)
-            out_pdf  = dest_dir / f"{filename}.pdf"
-            out_docx = dest_dir / f"{filename}.docx"
+            out_pdf  = dest_dir / f"{stem}.pdf"
+            out_docx = dest_dir / f"{stem}.docx"
             shutil.copy2(pdf_path,  out_pdf)
             shutil.copy2(docx_path, out_docx)
             content.pdf_path  = str(out_pdf)

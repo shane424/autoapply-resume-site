@@ -1,6 +1,8 @@
 import asyncio
+import re
 import traceback
 import uuid
+from collections import Counter
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from app.api.resume import get_active_resume
@@ -13,6 +15,41 @@ from app.models.job import Job
 from app.models.resume import TailoredResumeContent
 
 router = APIRouter()
+
+_STOP = {
+    "the","a","an","in","on","at","to","for","of","and","or","is","are","will",
+    "with","this","that","we","you","your","our","all","be","has","have","do",
+    "not","can","may","must","should","would","could","been","they","their",
+    "from","by","as","but","if","it","its","into","also","about","more","when",
+    "who","what","how","any","each","both","other","than","then","so","up",
+    "out","were","was","had","did","just","like","some","over","use","used",
+    "using","work","working","team","able","help","include","including",
+    "across","within","through","experience","years","year","strong",
+    "role","position","job","opportunity","looking","great","good","well",
+    "new","high","key","make","build","ensure","provide","support","manage",
+    "part","play","based","day","per","ability","skills","skill","knowledge",
+}
+
+
+def _ats_score(job_description: str, resume_text: str, top_n: int = 40) -> int:
+    """Return 0-100 keyword match score between job description and resume."""
+    tokens = re.findall(r"\b[a-zA-Z][a-zA-Z0-9#+.\-]{1,}\b", job_description.lower())
+    freq = Counter(t for t in tokens if t not in _STOP)
+    words = job_description.lower().split()
+    bigrams = [
+        f"{words[i]} {words[i+1]}"
+        for i in range(len(words) - 1)
+        if words[i] not in _STOP and words[i+1] not in _STOP
+        and re.match(r"[a-z]", words[i]) and re.match(r"[a-z]", words[i+1])
+        and len(words[i]) > 2 and len(words[i+1]) > 2
+    ]
+    freq.update(Counter(bigrams))
+    top_kw = [kw for kw, _ in freq.most_common(top_n)]
+    if not top_kw:
+        return 0
+    resume_lower = resume_text.lower()
+    matched = sum(1 for kw in top_kw if kw in resume_lower)
+    return round(matched / len(top_kw) * 100)
 
 # In-memory tailor task status
 _tailor_status: dict[str, dict] = {}  # job_id -> {"status": ..., "result": ..., "error": ...}
@@ -46,8 +83,7 @@ async def _run_tailor(job_id: str) -> None:
                 "Check your API key and network connection."
             )
 
-        score = min(100, 50 + len(tailored.keywords_added) * 5)
-        tailored = build_resume(tailored, resume, job_company=job.company, match_score=score)
+        tailored = build_resume(tailored, resume, job_company=job.company)
         _tailor_status[job_id] = {
             "status": "done",
             "result": tailored,
@@ -115,10 +151,9 @@ async def tailor_inline(body: InlineTailorRequest):
             detail=f"LLM timed out after {TAILOR_TIMEOUT_SECS}s. Check your API key.",
         )
 
-    match_score = min(100, 50 + len(tailored.keywords_added) * 5)
-    tailored = build_resume(tailored, resume, job_company=job.company, match_score=match_score)
+    tailored = build_resume(tailored, resume, job_company=job.company)
 
-    # Build a plain-text version of the tailored resume for the extension to display/copy
+    # Build plain-text resume for extension display and ATS scoring
     lines = []
     if resume.contact.get("name"):
         lines.append(resume.contact["name"])
@@ -142,10 +177,13 @@ async def tailor_inline(body: InlineTailorRequest):
         for edu in tailored.education:
             lines.append(f"{edu.degree} — {edu.school} ({edu.year})")
 
+    resume_text = "\n".join(lines)
+    match_score = _ats_score(job.description, resume_text)
+
     return {
         "success": True,
         "job_id": job_id,
-        "resume_text": "\n".join(lines),
+        "resume_text": resume_text,
         "cover_letter": tailored.cover_letter,
         "keywords_added": tailored.keywords_added,
         "secret_instructions": job.secret_instructions,
