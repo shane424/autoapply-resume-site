@@ -99,11 +99,21 @@ async def tailor_inline(body: InlineTailorRequest):
     Called by the Chrome extension. Accepts raw resume text + job data,
     runs the full tailor pipeline, and returns the result.
     The PDF is written to the configured output_dir (Shane's Documents folder).
+    If resume_text is empty, falls back to the resume uploaded via the dashboard.
     """
-    if not body.resume_text.strip():
-        raise HTTPException(status_code=400, detail="resume_text is required.")
     if not body.job_description.strip():
         raise HTTPException(status_code=400, detail="job_description is required.")
+
+    # Use pasted text if provided, otherwise fall back to server-side uploaded resume
+    if body.resume_text.strip():
+        resume = parse_resume_text(body.resume_text)
+    else:
+        resume = get_active_resume()
+        if not resume:
+            raise HTTPException(
+                status_code=400,
+                detail="No resume found. Upload one at http://localhost:8000 or paste it in the extension popup."
+            )
 
     job_id = f"ext_{uuid.uuid4().hex[:8]}"
     job = Job(
@@ -115,9 +125,7 @@ async def tailor_inline(body: InlineTailorRequest):
         apply_url=body.job_url or "",
         location="",
     )
-    job = _enrich_job(job)  # secret detection, location, us_remote
-
-    resume = parse_resume_text(body.resume_text)
+    job = _enrich_job(job)
 
     try:
         tailored = await asyncio.wait_for(
