@@ -7,9 +7,7 @@ llm:
 filters:
   keywords:
     - "Python"
-    - "remote"
-  roles:
-    - "Software Engineer"
+  roles: []
   exclude_keywords: []
   remote_only: true
 
