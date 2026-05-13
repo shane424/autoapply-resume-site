@@ -30,10 +30,6 @@ chrome.action.onClicked.addListener(() => {
 async function handleOptimizeResume(jobData, baseResume) {
   const server = await getServerUrl();
 
-  if (!baseResume || !baseResume.trim()) {
-    throw new Error('No resume saved. Open the extension popup → Resume tab and paste your resume.');
-  }
-
   let response;
   try {
     response = await fetch(`${server}/api/tailor/inline`, {

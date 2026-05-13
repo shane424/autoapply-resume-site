@@ -184,10 +184,10 @@ function injectFloatingButton() {
 function toggleSidebar() {
   const existing = document.getElementById('autoapply-sidebar');
   if (existing) { existing.remove(); sidebarInjected = false; }
-  else injectSidebar();
+  else injectSidebar(false);
 }
 
-function injectSidebar() {
+function injectSidebar(force = false) {
   if (sidebarInjected) return;
   const sidebar = document.createElement('div');
   sidebar.id = 'autoapply-sidebar';
@@ -205,12 +205,12 @@ function injectSidebar() {
   document.body.appendChild(sidebar);
   sidebarInjected = true;
   document.getElementById('autoapply-close').addEventListener('click', toggleSidebar);
-  loadJobInfo();
+  loadJobInfo(force);
 }
 
-async function loadJobInfo() {
+async function loadJobInfo(force = false) {
   const jobInfoEl = document.getElementById('autoapply-job-info');
-  const site = detectJobPage();
+  const site = detectJobPage() || (force ? 'generic' : null);
 
   if (!site) {
     jobInfoEl.innerHTML = '<p class="autoapply-error">No job posting detected on this page.</p>';
@@ -258,17 +258,10 @@ async function optimizeResume() {
   try {
     const { baseResume } = await chrome.storage.local.get(['baseResume']);
 
-    if (!baseResume) {
-      statusEl.innerHTML = `<div class="autoapply-error">
-        No resume saved. Open the extension popup → Resume tab and paste your resume text.
-      </div>`;
-      return;
-    }
-
     const response = await chrome.runtime.sendMessage({
       action: 'optimizeResume',
       jobData: currentJobData,
-      baseResume,
+      baseResume: baseResume || '',
     });
 
     if (response.success) {
@@ -379,6 +372,16 @@ if (document.readyState === 'loading') {
 } else {
   initialize();
 }
+
+// Message from popup — "Tailor Resume for Current Page" button
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'tailorCurrentPage') {
+    const existing = document.getElementById('autoapply-sidebar');
+    if (existing) { existing.remove(); sidebarInjected = false; }
+    injectSidebar(true);
+    sendResponse({ ok: true });
+  }
+});
 
 // Handle SPA navigation (LinkedIn, etc.)
 let lastUrl = location.href;

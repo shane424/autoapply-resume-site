@@ -56,12 +56,55 @@ document.getElementById('saveProfile').addEventListener('click', async () => {
   showStatus('profileStatus', 'Profile saved!', 'success');
 });
 
-// Resume — save
+// Resume — file name display
+document.getElementById('resumeFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  document.getElementById('fileName').textContent = file ? file.name : 'No file selected';
+});
+
+// Resume — upload PDF/DOCX to server
+document.getElementById('uploadResume').addEventListener('click', async () => {
+  const file = document.getElementById('resumeFile').files[0];
+  if (!file) { showStatus('uploadStatus', 'Choose a PDF or DOCX file first.', 'error'); return; }
+
+  const { serverUrl } = await chrome.storage.local.get(['serverUrl']);
+  const base = (serverUrl || DEFAULT_SERVER).replace(/\/$/, '');
+
+  showStatus('uploadStatus', 'Uploading…', 'success');
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`${base}/api/resume/upload`, { method: 'POST', body: form });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `Server error ${res.status}`);
+    }
+    showStatus('uploadStatus', `Uploaded! Server parsed "${file.name}".`, 'success');
+  } catch (err) {
+    showStatus('uploadStatus', `Upload failed: ${err.message}`, 'error');
+  }
+});
+
+// Resume — save text
 document.getElementById('saveResume').addEventListener('click', async () => {
   const resume = document.getElementById('baseResume').value;
-  if (!resume.trim()) { showStatus('resumeStatus', 'Please paste your resume.', 'error'); return; }
+  if (!resume.trim()) { showStatus('resumeStatus', 'Please paste your resume text.', 'error'); return; }
   await chrome.storage.local.set({ baseResume: resume });
-  showStatus('resumeStatus', 'Resume saved!', 'success');
+  showStatus('resumeStatus', 'Resume text saved!', 'success');
+});
+
+// Server tab — tailor resume for the current tab's page
+document.getElementById('tailorCurrentPage').addEventListener('click', async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) { showStatus('tailorStatus', 'No active tab found.', 'error'); return; }
+  showStatus('tailorStatus', 'Opening sidebar on current page…', 'success');
+  chrome.tabs.sendMessage(tab.id, { action: 'tailorCurrentPage' }, (resp) => {
+    if (chrome.runtime.lastError || !resp?.ok) {
+      showStatus('tailorStatus', 'Could not reach the page. Reload it and try again.', 'error');
+    } else {
+      window.close();
+    }
+  });
 });
 
 // Dashboard link — open the local server dashboard

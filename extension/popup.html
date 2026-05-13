@@ -158,6 +158,11 @@
       </code><br>
       Run this from your project folder with the venv activated.
     </div>
+
+    <button class="btn btn-primary" id="tailorCurrentPage" style="margin-top:14px;">
+      Tailor Resume for Current Page
+    </button>
+    <div id="tailorStatus"></div>
   </div>
 
   <!-- Profile Tab -->
@@ -179,15 +184,27 @@
   <!-- Resume Tab -->
   <div id="resume-tab" class="tab-content">
     <div class="form-group">
-      <label>Your Master Resume (plain text)</label>
-      <textarea id="baseResume" placeholder="Paste your complete resume here. The extension reads this and sends it to the server for tailoring when you click 'Tailor Resume' on a job page."></textarea>
+      <label>Upload PDF / DOCX to Server</label>
+      <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+        <label for="resumeFile" class="btn btn-primary" style="margin-top:0; width:auto; padding:8px 14px; cursor:pointer; font-size:12px;">
+          Choose File
+        </label>
+        <span id="fileName" class="small" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">No file selected</span>
+        <input type="file" id="resumeFile" accept=".pdf,.docx,.doc" style="display:none">
+      </div>
+      <p class="small" style="margin-top:6px;">Parses and stores your resume on the local server — no text pasting needed.</p>
     </div>
-    <button class="btn btn-primary" id="saveResume">Save Resume</button>
+    <button class="btn btn-primary" id="uploadResume">Upload to Server</button>
+    <div id="uploadStatus"></div>
+
+    <div style="margin:14px 0 10px; text-align:center; font-size:11px; color:#aaa; border-top:1px solid #eee; padding-top:10px;">or paste resume text as fallback</div>
+
+    <div class="form-group">
+      <label>Resume Text (optional)</label>
+      <textarea id="baseResume" placeholder="Paste your complete resume here if you prefer not to upload the file."></textarea>
+    </div>
+    <button class="btn btn-primary" id="saveResume">Save Text Resume</button>
     <div id="resumeStatus"></div>
-    <div class="info-box">
-      <strong>Tip:</strong> Include everything — summary, all experience, all skills, education.
-      The server tailors it per job without removing real experience.
-    </div>
   </div>
 
   <!-- Job Boards Tab -->
