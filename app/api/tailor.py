@@ -59,31 +59,7 @@ async def _run_tailor(job_id: str) -> None:
         _tailor_status[job_id] = {"status": "failed", "result": None, "error": str(e)}
 
 
-@router.post("/{job_id}")
-async def trigger_tailor(job_id: str, background_tasks: BackgroundTasks):
-    if not get_active_resume():
-        raise HTTPException(status_code=400, detail="No resume uploaded. Upload a resume first.")
-    if not get_job_by_id(job_id):
-        raise HTTPException(status_code=404, detail="Job not found.")
-
-    _tailor_status[job_id] = {"status": "pending", "result": None, "error": None}
-    background_tasks.add_task(_run_tailor, job_id)
-    return {"message": "Tailoring started.", "job_id": job_id}
-
-
-@router.get("/{job_id}/status")
-async def get_tailor_status(job_id: str):
-    s = _get_status(job_id)
-    return {
-        "job_id": job_id,
-        "status": s.get("status", "not_started"),
-        "error": s.get("error"),
-        "keywords_added": s.get("keywords_added", []),
-        "cover_letter": s.get("cover_letter", ""),
-    }
-
-
-# ── Extension inline endpoint ─────────────────────────────────────────────────
+# ── Extension inline endpoint (must be before /{job_id} to avoid route shadowing) ──
 
 class InlineTailorRequest(BaseModel):
     resume_text: str
@@ -174,4 +150,30 @@ async def tailor_inline(body: InlineTailorRequest):
         "pdf_path": tailored.pdf_path,
         "docx_path": tailored.docx_path,
         "match_score": min(100, 50 + len(tailored.keywords_added) * 5),
+    }
+
+
+# ── Dashboard / background tailor endpoints ───────────────────────────────────
+
+@router.post("/{job_id}")
+async def trigger_tailor(job_id: str, background_tasks: BackgroundTasks):
+    if not get_active_resume():
+        raise HTTPException(status_code=400, detail="No resume uploaded. Upload a resume first.")
+    if not get_job_by_id(job_id):
+        raise HTTPException(status_code=404, detail="Job not found.")
+
+    _tailor_status[job_id] = {"status": "pending", "result": None, "error": None}
+    background_tasks.add_task(_run_tailor, job_id)
+    return {"message": "Tailoring started.", "job_id": job_id}
+
+
+@router.get("/{job_id}/status")
+async def get_tailor_status(job_id: str):
+    s = _get_status(job_id)
+    return {
+        "job_id": job_id,
+        "status": s.get("status", "not_started"),
+        "error": s.get("error"),
+        "keywords_added": s.get("keywords_added", []),
+        "cover_letter": s.get("cover_letter", ""),
     }
