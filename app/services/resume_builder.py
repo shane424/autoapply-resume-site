@@ -179,54 +179,60 @@ def _build_docx(content: TailoredResumeContent, contact: dict, out_path: Path) -
     doc.save(str(out_path))
 
 
-def build_resume(content: TailoredResumeContent, original_resume: ParsedResume, job_company: str = "") -> TailoredResumeContent:
+def build_resume(
+    content: TailoredResumeContent,
+    original_resume: ParsedResume,
+    job_company: str = "",
+    match_score: int = 0,
+) -> TailoredResumeContent:
     from app.config import load_app_settings
+    from datetime import datetime
 
     job_dir = STORAGE_DIR / content.job_id
     job_dir.mkdir(parents=True, exist_ok=True)
 
     contact = original_resume.contact
-    docx_path = job_dir / "resume.docx"
+    name = contact.get("name", "")
+    stem = _safe_filename(name) if name else "Resume"
+    score_sfx = f"_{match_score}" if match_score else ""
+    filename = f"{stem}{score_sfx}"  # e.g. "Shane_Smith_95"
 
-    # DOCX always — python-docx is pure Python, no system deps
+    docx_path = job_dir / f"{filename}.docx"
     _build_docx(content, contact, docx_path)
     content.docx_path = str(docx_path)
 
-    # PDF — requires reportlab; give a clear error if missing
     if not _REPORTLAB_OK:
         raise RuntimeError(
             "reportlab is not installed. Run: pip install reportlab==4.2.5\n"
             "Your DOCX was generated successfully at: " + str(docx_path)
         )
-    pdf_path = job_dir / "resume.pdf"
+    pdf_path = job_dir / f"{filename}.pdf"
     _build_pdf(content, contact, pdf_path)
     content.pdf_path = str(pdf_path)
 
-    # Copy to user-configured output directory (if set), named after the person
+    # Copy to user-configured output directory
     settings = load_app_settings()
     if settings.output_dir:
-        from datetime import datetime
         today = datetime.now()
-        date_str = f"{today.month}{today.day:02d}{today.year}"
-        stem = _safe_filename(contact.get("name", "resume")) or "resume"
+        date_str   = f"{today.month}{today.day:02d}{today.year}"
+        time_str   = f"{today.hour:02d}{today.minute:02d}"
         _generic = {"unknown company", "unknown", "unknown position", ""}
         try:
             clean_company = (job_company or "").strip()
             if clean_company.lower() not in _generic:
                 company_slug = _safe_filename(clean_company).lower()
-                dest_dir = Path(settings.output_dir) / f"{company_slug}_{date_str}"
+                folder = f"{company_slug}_{date_str}"
             else:
-                dest_dir = Path(settings.output_dir) / date_str
+                folder = f"{date_str}_{time_str}"   # e.g. 5132026_0751
+            dest_dir = Path(settings.output_dir) / folder
             dest_dir.mkdir(parents=True, exist_ok=True)
-            out_pdf  = dest_dir / f"{stem}.pdf"
-            out_docx = dest_dir / f"{stem}.docx"
+            out_pdf  = dest_dir / f"{filename}.pdf"
+            out_docx = dest_dir / f"{filename}.docx"
             shutil.copy2(pdf_path,  out_pdf)
             shutil.copy2(docx_path, out_docx)
-            # Point pdf_path/docx_path at the user-visible Documents location
             content.pdf_path  = str(out_pdf)
             content.docx_path = str(out_docx)
         except Exception as e:
-            # Non-fatal — internal files are still written successfully
             print(f"[resume_builder] Warning: could not copy to output_dir: {e}")
 
     return content
