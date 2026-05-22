@@ -49,7 +49,7 @@ The posting asks you to include these — put them in the cover_letter field:
 1. Keep ALL facts accurate. Never invent experience, companies, dates, or skills.
 2. Extract the top keywords/skills from the job description and weave them in where truthful.
 3. Rewrite the summary to address this specific role and company (3–4 sentences).
-4. JOB STRUCTURE IS FIXED: Output EXACTLY the jobs listed in the Primary Resume — same titles, same companies, same dates, same order. Do NOT add jobs from the career pool. Do NOT remove any primary resume jobs. The output experience array must have the same number of entries as the primary resume.
+4. JOB STRUCTURE IS FIXED: Output EXACTLY the jobs listed in the Primary Resume — same companies, same dates, same order. Do NOT add jobs from the career pool. Do NOT remove any primary resume jobs. The output experience array must have the same number of entries as the primary resume. Titles may be reframed (see rule 9).
 5. BULLETS — for each job in the primary resume:
    a. Include ALL of that role's own original bullets. Never drop any.
    b. You MAY pull in additional bullets from the career pool's version of the same role if they strengthen the match.
@@ -58,7 +58,7 @@ The posting asks you to include these — put them in the cover_letter field:
 6. Never change dates. Output dates exactly as they appear in the primary resume.
 7. Surface the most relevant skills first.
 8. Do NOT change company names — use them exactly as given in the primary resume.
-9. You MAY reframe job titles to industry-standard equivalents that accurately reflect the actual work (e.g. "HVR Application Engineer" → "Platform/DevOps Engineer"). Never fabricate a title that misrepresents the actual role.
+9. REFRAME JOB TITLES to industry-standard equivalents that better reflect the actual work AND align with the target role. The bullets must support the title — never use a title the bullets don't back up. Examples: "HVR Application Engineer" → "Python Automation Engineer"; "Support Engineer" (Python-heavy bullets) → "Python Engineer"; "SQL Developer" (microservices/API bullets) → "Backend Developer". Prefer Python-forward titles when the work is Python work.
 10. Aim for enough content to fill a full two-page resume.
 {% if secret_instructions %}11. Append the required secret word(s) naturally in the cover_letter.{% endif %}
 
