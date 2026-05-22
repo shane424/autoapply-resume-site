@@ -118,8 +118,8 @@ document.getElementById('tailor-btn').addEventListener('click', async () => {
     tailorBtn.disabled = false;
     tailorBtn.textContent = 'Tailor Again';
 
-    const kws = (data.keywords_added || [])
-      .map(k => `<span class="kw-chip">${escHtml(k)}</span>`).join('');
+    const missing = (data.keywords_missing || []).slice(0, 12)
+      .map(k => `<span class="kw-chip kw-miss">${escHtml(k)}</span>`).join('');
 
     resultEl.innerHTML = `
       <div class="result-box">
@@ -127,7 +127,7 @@ document.getElementById('tailor-btn').addEventListener('click', async () => {
           <span class="score-num">${data.match_score || 0}%</span>
           <span class="score-label">JD match</span>
         </div>
-        ${kws ? `<div class="kw-chips">${kws}</div>` : ''}
+        ${missing ? `<p class="kw-label">Missing from resume:</p><div class="kw-chips">${missing}</div>` : ''}
         <button id="copy-resume-btn" class="btn btn-primary">Copy Resume Text</button>
         ${data.cover_letter ? '<button id="copy-cover-btn" class="btn btn-outline">Copy Cover Letter</button>' : ''}
         ${data.pdf_path ? `<p class="pdf-note" title="${escHtml(data.pdf_path)}">📄 ${escHtml(data.pdf_path.split(/[\\/]/).slice(-2).join('\\'))}</p>` : ''}

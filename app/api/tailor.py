@@ -31,11 +31,21 @@ _STOP = {
 }
 
 
-def _ats_score(job_description: str, resume_text: str, top_n: int = 40) -> int:
-    """Return 0-100 keyword match score between job description and resume."""
+def _ats_score(job_description: str, resume_text: str, top_n: int = 50) -> tuple[int, list[str], list[str]]:
+    """Return (score 0-100, matched keywords, missing keywords) for the top_n JD keywords."""
+    # Normalize common aliases so postgres == postgresql, etc.
+    _aliases = {
+        "postgresql": "postgres", "pg": "postgres",
+        "javascript": "js", "typescript": "ts",
+        "kubernetes": "k8s", "amazon": "aws",
+        "github": "git", "gitlab": "git",
+    }
+    def _norm(w: str) -> str:
+        return _aliases.get(w, w)
+
     tokens = re.findall(r"\b[a-zA-Z][a-zA-Z0-9#+.\-]{1,}\b", job_description.lower())
-    freq = Counter(t for t in tokens if t not in _STOP)
-    words = job_description.lower().split()
+    freq = Counter(_norm(t) for t in tokens if t not in _STOP)
+    words = [_norm(w) for w in job_description.lower().split()]
     bigrams = [
         f"{words[i]} {words[i+1]}"
         for i in range(len(words) - 1)
@@ -46,10 +56,15 @@ def _ats_score(job_description: str, resume_text: str, top_n: int = 40) -> int:
     freq.update(Counter(bigrams))
     top_kw = [kw for kw, _ in freq.most_common(top_n)]
     if not top_kw:
-        return 0
+        return 0, [], []
     resume_lower = resume_text.lower()
-    matched = sum(1 for kw in top_kw if kw in resume_lower)
-    return round(matched / len(top_kw) * 100)
+    # Normalize resume text the same way
+    for orig, norm in _aliases.items():
+        resume_lower = resume_lower.replace(orig, norm)
+    matched  = [kw for kw in top_kw if kw in resume_lower]
+    missing  = [kw for kw in top_kw if kw not in resume_lower]
+    score = round(len(matched) / len(top_kw) * 100)
+    return score, matched, missing
 
 # In-memory tailor task status
 _tailor_status: dict[str, dict] = {}  # job_id -> {"status": ..., "result": ..., "error": ...}
@@ -181,7 +196,7 @@ async def tailor_inline(body: InlineTailorRequest):
             lines.append(f"{edu.degree} — {edu.school} ({edu.year})")
 
     resume_text = "\n".join(lines)
-    match_score = _ats_score(job.description, resume_text)
+    match_score, kw_matched, kw_missing = _ats_score(job.description, resume_text)
 
     return {
         "success": True,
@@ -193,6 +208,8 @@ async def tailor_inline(body: InlineTailorRequest):
         "pdf_path": tailored.pdf_path,
         "docx_path": tailored.docx_path,
         "match_score": match_score,
+        "keywords_matched": kw_matched,
+        "keywords_missing": kw_missing,
     }
 
 
