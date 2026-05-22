@@ -75,63 +75,85 @@ function showNoJob() {
 document.getElementById('tailor-btn').addEventListener('click', async () => {
   if (!currentJobData) return;
 
-  const tailorBtn    = document.getElementById('tailor-btn');
-  const loadingEl    = document.getElementById('tailor-loading');
-  const resultEl     = document.getElementById('tailor-result');
+  const tailorBtn = document.getElementById('tailor-btn');
+  const loadingEl = document.getElementById('tailor-loading');
+  const resultEl  = document.getElementById('tailor-result');
 
   tailorBtn.disabled = true;
   tailorBtn.textContent = 'Tailoring…';
   loadingEl.style.display = 'block';
   resultEl.innerHTML = '';
 
-  const { baseResume } = await chrome.storage.local.get(['baseResume']);
+  try {
+    const { baseResume, serverUrl } = await chrome.storage.local.get(['baseResume', 'serverUrl']);
+    const base = (serverUrl || DEFAULT_SERVER).replace(/\/$/, '');
 
-  const response = await new Promise(resolve => {
-    chrome.runtime.sendMessage({
-      action: 'optimizeResume',
-      jobData: currentJobData,
-      baseResume: baseResume || '',
-    }, resolve);
-  });
+    const res = await fetch(`${base}/api/tailor/inline`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        resume_text:     baseResume || '',
+        job_title:       currentJobData.title       || '',
+        job_company:     currentJobData.company     || '',
+        job_description: currentJobData.description || '',
+        job_url:         currentJobData.url         || '',
+      }),
+    });
 
-  loadingEl.style.display = 'none';
-  tailorBtn.disabled = false;
-  tailorBtn.textContent = 'Tailor Again';
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `Server error ${res.status}`);
+    }
 
-  if (response && response.success) {
-    const kws = (response.matchedKeywords || [])
+    const data = await res.json();
+
+    // Track stats
+    const { stats = {} } = await chrome.storage.local.get(['stats']);
+    stats.resumesOptimized = (stats.resumesOptimized || 0) + 1;
+    stats.totalMatchScore  = (stats.totalMatchScore  || 0) + (data.match_score || 0);
+    stats.matchScoreCount  = (stats.matchScoreCount  || 0) + 1;
+    await chrome.storage.local.set({ stats });
+
+    loadingEl.style.display = 'none';
+    tailorBtn.disabled = false;
+    tailorBtn.textContent = 'Tailor Again';
+
+    const kws = (data.keywords_added || [])
       .map(k => `<span class="kw-chip">${escHtml(k)}</span>`).join('');
 
     resultEl.innerHTML = `
       <div class="result-box">
         <div class="result-score">
-          <span class="score-num">${response.matchScore}%</span>
-          <span class="score-label">match</span>
+          <span class="score-num">${data.match_score || 0}%</span>
+          <span class="score-label">JD match</span>
         </div>
         ${kws ? `<div class="kw-chips">${kws}</div>` : ''}
         <button id="copy-resume-btn" class="btn btn-primary">Copy Resume Text</button>
-        ${response.coverLetter ? '<button id="copy-cover-btn" class="btn btn-outline">Copy Cover Letter</button>' : ''}
-        ${response.pdfPath ? '<p class="pdf-note">PDF saved to your Documents folder</p>' : ''}
+        ${data.cover_letter ? '<button id="copy-cover-btn" class="btn btn-outline">Copy Cover Letter</button>' : ''}
+        ${data.pdf_path ? '<p class="pdf-note">PDF saved to your Documents folder</p>' : ''}
       </div>`;
 
     document.getElementById('copy-resume-btn').addEventListener('click', () => {
-      navigator.clipboard.writeText(response.optimizedResume).then(() => {
+      navigator.clipboard.writeText(data.resume_text || '').then(() => {
         const btn = document.getElementById('copy-resume-btn');
-        const orig = btn.textContent;
         btn.textContent = 'Copied!';
-        setTimeout(() => { btn.textContent = orig; }, 2000);
+        setTimeout(() => { btn.textContent = 'Copy Resume Text'; }, 2000);
       });
     });
 
     document.getElementById('copy-cover-btn')?.addEventListener('click', () => {
-      navigator.clipboard.writeText(response.coverLetter).then(() => {
+      navigator.clipboard.writeText(data.cover_letter || '').then(() => {
         const btn = document.getElementById('copy-cover-btn');
         btn.textContent = 'Copied!';
         setTimeout(() => { btn.textContent = 'Copy Cover Letter'; }, 2000);
       });
     });
-  } else {
-    resultEl.innerHTML = `<div class="status-msg error">${escHtml((response && response.error) || 'Tailoring failed. Check the server is running.')}</div>`;
+
+  } catch (err) {
+    loadingEl.style.display = 'none';
+    tailorBtn.disabled = false;
+    tailorBtn.textContent = 'Tailor Resume for This Job';
+    resultEl.innerHTML = `<div class="status-msg error">${escHtml(err.message)}</div>`;
   }
 });
 
