@@ -10,10 +10,16 @@ UPLOAD_DIR = Path(__file__).parent.parent.parent / "storage" / "uploads"
 
 # In-memory active resume (single-user)
 _active_resume: ParsedResume | None = None
+# Optional full-career pool — all jobs/bullets the AI may draw from
+_career_pool: ParsedResume | None = None
 
 
 def get_active_resume() -> ParsedResume | None:
     return _active_resume
+
+
+def get_career_pool() -> ParsedResume | None:
+    return _career_pool
 
 
 @router.post("/upload", response_model=ParsedResume)

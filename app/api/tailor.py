@@ -5,7 +5,7 @@ import uuid
 from collections import Counter
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
-from app.api.resume import get_active_resume
+from app.api.resume import get_active_resume, get_career_pool
 from app.api.jobs import get_job_by_id
 from app.services.llm_client import tailor_resume
 from app.services.resume_builder import build_resume
@@ -74,7 +74,7 @@ async def _run_tailor(job_id: str) -> None:
 
         try:
             tailored = await asyncio.wait_for(
-                tailor_resume(resume, job),
+                tailor_resume(resume, job, career_pool=get_career_pool()),
                 timeout=TAILOR_TIMEOUT_SECS,
             )
         except asyncio.TimeoutError:
@@ -140,9 +140,12 @@ async def tailor_inline(body: InlineTailorRequest):
     )
     job = _enrich_job(job)
 
+    # Always pass career pool if available — gives LLM more bullets to work with
+    career_pool = get_career_pool()
+
     try:
         tailored = await asyncio.wait_for(
-            tailor_resume(resume, job),
+            tailor_resume(resume, job, career_pool=career_pool),
             timeout=TAILOR_TIMEOUT_SECS,
         )
     except asyncio.TimeoutError:

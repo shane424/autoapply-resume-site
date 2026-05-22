@@ -23,18 +23,22 @@ async def _auto_load_resume():
     from app.config import env_settings
     from app.services.resume_parser import parse_resume
     import app.api.resume as resume_mod
-    path_str = env_settings.resume_path.strip()
-    if not path_str:
-        return
-    path = Path(path_str)
-    if not path.exists():
-        print(f"[startup] RESUME_PATH set but file not found: {path}")
-        return
-    try:
-        resume_mod._active_resume = parse_resume(str(path))
-        print(f"[startup] Auto-loaded resume from {path}")
-    except Exception as e:
-        print(f"[startup] Failed to auto-load resume from {path}: {e}")
+
+    for attr, env_val, label in [
+        ("_active_resume",  env_settings.resume_path.strip(),         "RESUME_PATH"),
+        ("_career_pool",    env_settings.career_resume_path.strip(),   "CAREER_RESUME_PATH"),
+    ]:
+        if not env_val:
+            continue
+        p = Path(env_val)
+        if not p.exists():
+            print(f"[startup] {label} set but file not found: {p}")
+            continue
+        try:
+            setattr(resume_mod, attr, parse_resume(str(p)))
+            print(f"[startup] Loaded {label} from {p}")
+        except Exception as e:
+            print(f"[startup] Failed to load {label} from {p}: {e}")
 
 # Allow Chrome extension (and any localhost origin) to call the API
 app.add_middleware(

@@ -1,6 +1,7 @@
 import json
 import re
 from pathlib import Path
+from typing import Optional
 
 import httpx
 from jinja2 import Environment, FileSystemLoader
@@ -74,12 +75,17 @@ async def extract_keywords(job: Job) -> list[str]:
     return []
 
 
-async def tailor_resume(resume: ParsedResume, job: Job) -> TailoredResumeContent:
+async def tailor_resume(
+    resume: ParsedResume,
+    job: Job,
+    career_pool: Optional[ParsedResume] = None,
+) -> TailoredResumeContent:
     # Single LLM call — keywords extracted inline, structured resume replaces raw text
     prompt = _render_prompt(
         "tailor_resume.j2",
         resume=resume,
         job=job,
+        career_pool=career_pool,
         secret_instructions=job.secret_instructions,
     )
     response = await _complete(prompt)
@@ -102,15 +108,17 @@ async def tailor_resume(resume: ParsedResume, job: Job) -> TailoredResumeContent
         )
         for e in (data.get("education") or [])
     ]
-    # Strip any skills the LLM invented that aren't in the original resume.
-    # Build a lowercase token set from original skills + all bullet text.
+
+    # Build allowed token set from primary resume + career pool.
+    # Any skill the candidate actually possesses (from either source) is valid.
     original_tokens = set()
-    for s in resume.skills:
-        original_tokens.update(re.findall(r"[a-z0-9#+.\-]+", s.lower()))
-    for exp in resume.experience:
-        for b in exp.bullets:
-            original_tokens.update(re.findall(r"[a-z0-9#+.\-]+", b.lower()))
-    original_tokens.update(re.findall(r"[a-z0-9#+.\-]+", resume.raw_text.lower()))
+    for source in ([resume] + ([career_pool] if career_pool else [])):
+        for s in source.skills:
+            original_tokens.update(re.findall(r"[a-z0-9#+.\-]+", s.lower()))
+        for exp in source.experience:
+            for b in exp.bullets:
+                original_tokens.update(re.findall(r"[a-z0-9#+.\-]+", b.lower()))
+        original_tokens.update(re.findall(r"[a-z0-9#+.\-]+", source.raw_text.lower()))
 
     clean_skills = []
     for skill in data.get("skills", []):

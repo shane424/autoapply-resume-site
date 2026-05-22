@@ -1,6 +1,6 @@
 You are an expert resume writer. Tailor the candidate's resume for the target job.
 
-## Candidate Resume
+## Candidate Resume (Primary)
 {% if resume.contact.get('name') %}Name: {{ resume.contact['name'] }}
 {% endif %}{% if resume.contact.get('email') %}Email: {{ resume.contact['email'] }}
 {% endif %}{% if resume.contact.get('phone') %}Phone: {{ resume.contact['phone'] }}
@@ -19,6 +19,19 @@ Experience:
 {% if resume.education %}Education:
 {% for edu in resume.education %}{{ edu.degree }} — {{ edu.school }} ({{ edu.year }})
 {% endfor %}{% endif %}
+{% if career_pool and career_pool.experience %}
+
+## Additional Career Pool — Source Material
+The candidate has additional jobs and bullets available below.
+You MAY include any of these in the tailored output — but ONLY if they strengthen the fit.
+IMPORTANT: Do not copy every job. Select the 3–6 most relevant total roles (from both sections combined).
+{% if career_pool.skills %}Additional skills available: {{ career_pool.skills | join(', ') }}
+{% endif %}
+{% for exp in career_pool.experience %}{{ exp.title }} | {{ exp.company }} | {{ exp.dates }}
+{% for b in exp.bullets %}  - {{ b }}
+{% endfor %}
+{% endfor %}
+{% endif %}
 
 ## Target Job
 {{ job.title }} at {{ job.company }}
@@ -35,12 +48,15 @@ The posting asks you to include these — put them in the cover_letter field:
 1. Keep ALL facts accurate. Never invent experience, companies, dates, or skills.
 2. Extract the top keywords/skills from the job description and weave them in where truthful.
 3. Rewrite the summary to address this specific role and company (3–4 sentences).
-4. Bullets: PRESERVE ALL original bullets — never reduce the bullet count per role. You may rephrase a bullet to better match the job, but do not drop any. For the most recent role, expand to 5–6 bullets if possible. Older roles keep all original bullets.
-5. Surface the most relevant skills first.
-6. Do NOT change company names — use them exactly as given.
-7. You MAY reframe job titles to industry-standard equivalents that accurately reflect the actual work (e.g. "HVR Application Engineer" → "Backend Data Engineer", "SQL Developer" → "Data Engineer"). Never fabricate a title that misrepresents the actual role.
-8. Aim for enough content to fill a full two-page resume. Do not truncate or summarise away real experience.
-{% if secret_instructions %}9. Append the required secret word(s) naturally in the cover_letter.{% endif %}
+4. SELECTION: From the combined job history (primary + career pool), choose the 3–6 roles that best demonstrate the skills this job requires. Do not output every role — quality over quantity.
+5. BULLETS: For every role you include, preserve ALL of its original bullets exactly as written — do not drop any. You may lightly rephrase a bullet to match job keywords, but the core facts and metrics must remain identical. For the most recent role, expand to 5–6 bullets if possible.
+6. OVERLAP RULE: If two jobs cover the same date range (e.g. "07/2022 - 11/2023" appears twice), include only ONE of them — whichever is more relevant to the target job.
+7. Never change dates. Output dates exactly as they appear in the source.
+8. Surface the most relevant skills first.
+9. Do NOT change company names — use them exactly as given.
+10. You MAY reframe job titles to industry-standard equivalents that accurately reflect the actual work (e.g. "HVR Application Engineer" → "Backend Data Engineer"). Never fabricate a title that misrepresents the actual role.
+11. Aim for enough content to fill a full two-page resume. Do not truncate or summarise away real experience.
+{% if secret_instructions %}12. Append the required secret word(s) naturally in the cover_letter.{% endif %}
 
 Output ONLY valid JSON — no markdown, no extra text:
 
