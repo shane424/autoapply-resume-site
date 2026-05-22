@@ -36,3 +36,4 @@ class TailoredResumeContent(BaseModel):
     cover_letter: str = ""
     pdf_path: Optional[str] = None
     docx_path: Optional[str] = None
+    cover_letter_path: Optional[str] = None

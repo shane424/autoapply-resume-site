@@ -199,6 +199,11 @@ def build_resume(
     _build_docx(content, contact, docx_path)
     content.docx_path = str(docx_path)
 
+    if content.cover_letter.strip():
+        cl_path = job_dir / f"{stem}_Cover_Letter.txt"
+        cl_path.write_text(content.cover_letter, encoding="utf-8")
+        content.cover_letter_path = str(cl_path)
+
     if not _REPORTLAB_OK:
         raise RuntimeError(
             "reportlab is not installed. Run: pip install reportlab==4.2.5\n"
@@ -231,6 +236,10 @@ def build_resume(
             shutil.copy2(docx_path, out_docx)
             content.pdf_path  = str(out_pdf)
             content.docx_path = str(out_docx)
+            if content.cover_letter.strip():
+                out_cl = dest_dir / f"{stem}_Cover_Letter.txt"
+                out_cl.write_text(content.cover_letter, encoding="utf-8")
+                content.cover_letter_path = str(out_cl)
             print(f"[resume_builder] Saved to: {out_pdf}")
         except Exception as e:
             import traceback

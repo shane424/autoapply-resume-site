@@ -131,6 +131,7 @@ document.getElementById('tailor-btn').addEventListener('click', async () => {
         <button id="copy-resume-btn" class="btn btn-primary">Copy Resume Text</button>
         ${data.cover_letter ? '<button id="copy-cover-btn" class="btn btn-outline">Copy Cover Letter</button>' : ''}
         ${data.pdf_path ? `<p class="pdf-note" title="${escHtml(data.pdf_path)}">📄 ${escHtml(data.pdf_path.split(/[\\/]/).slice(-2).join('\\'))}</p>` : ''}
+        ${data.cover_letter_path ? `<p class="pdf-note" title="${escHtml(data.cover_letter_path)}">📝 ${escHtml(data.cover_letter_path.split(/[\\/]/).slice(-2).join('\\'))}</p>` : ''}
       </div>`;
 
     document.getElementById('copy-resume-btn').addEventListener('click', () => {

@@ -207,6 +207,7 @@ async def tailor_inline(body: InlineTailorRequest):
         "secret_instructions": job.secret_instructions,
         "pdf_path": tailored.pdf_path,
         "docx_path": tailored.docx_path,
+        "cover_letter_path": tailored.cover_letter_path,
         "match_score": match_score,
         "keywords_matched": kw_matched,
         "keywords_missing": kw_missing,
