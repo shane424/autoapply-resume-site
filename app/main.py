@@ -29,6 +29,7 @@ async def _auto_load_resume():
         ("_career_pool",    env_settings.career_resume_path.strip(),   "CAREER_RESUME_PATH"),
     ]:
         if not env_val:
+            print(f"[startup] {label} not set — {'upload resume manually' if attr == '_active_resume' else 'career pool disabled'}")
             continue
         p = Path(env_val)
         if not p.exists():
@@ -36,9 +37,18 @@ async def _auto_load_resume():
             continue
         try:
             setattr(resume_mod, attr, parse_resume(str(p)))
-            print(f"[startup] Loaded {label} from {p}")
+            print(f"[startup] ✓ {label} loaded: {p}")
         except Exception as e:
             print(f"[startup] Failed to load {label} from {p}: {e}")
+
+    # Show where finished resumes will be saved
+    from app.config import load_app_settings
+    cfg = load_app_settings()
+    output_dir = env_settings.output_dir.strip() or cfg.output_dir.strip()
+    if output_dir:
+        print(f"[startup] ✓ OUTPUT_DIR: {output_dir}")
+    else:
+        print("[startup] OUTPUT_DIR not set — files saved to storage/tailored/ only")
 
 # Allow Chrome extension (and any localhost origin) to call the API
 app.add_middleware(

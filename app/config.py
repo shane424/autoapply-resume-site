@@ -14,6 +14,8 @@ class EnvSettings(BaseSettings):
     resume_path: str = ""
     # Full path to full-career resume — all jobs + bullets used as AI source pool
     career_resume_path: str = ""
+    # Where to copy finished PDF + DOCX files (overrides config.yaml output_dir)
+    output_dir: str = ""
 
 
 def load_app_settings() -> AppSettings:

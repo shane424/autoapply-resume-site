@@ -184,7 +184,7 @@ def build_resume(
     original_resume: ParsedResume,
     job_company: str = "",
 ) -> TailoredResumeContent:
-    from app.config import load_app_settings
+    from app.config import load_app_settings, env_settings
     from datetime import datetime
 
     job_dir = STORAGE_DIR / content.job_id
@@ -208,9 +208,10 @@ def build_resume(
     _build_pdf(content, contact, pdf_path)
     content.pdf_path = str(pdf_path)
 
-    # Copy to user-configured output directory
+    # Copy to user-configured output directory (.env OUTPUT_DIR overrides config.yaml)
     settings = load_app_settings()
-    if settings.output_dir:
+    resolved_output_dir = env_settings.output_dir.strip() or settings.output_dir.strip()
+    if resolved_output_dir:
         today = datetime.now()
         date_str   = f"{today.month}{today.day:02d}{today.year}"
         time_str   = f"{today.hour:02d}{today.minute:02d}"
@@ -222,7 +223,7 @@ def build_resume(
                 folder = f"{company_slug}_{date_str}"
             else:
                 folder = f"{date_str}_{time_str}"
-            dest_dir = Path(settings.output_dir) / folder
+            dest_dir = Path(resolved_output_dir) / folder
             dest_dir.mkdir(parents=True, exist_ok=True)
             out_pdf  = dest_dir / f"{stem}.pdf"
             out_docx = dest_dir / f"{stem}.docx"
