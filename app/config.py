@@ -10,6 +10,8 @@ class EnvSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     anthropic_api_key: str = ""
+    # Full path to resume PDF/DOCX — auto-loaded at startup if set
+    resume_path: str = ""
 
 
 def load_app_settings() -> AppSettings:

@@ -157,6 +157,54 @@ document.getElementById('tailor-btn').addEventListener('click', async () => {
   }
 });
 
+// ── Autofill ──────────────────────────────────────────────────────────────────
+
+document.getElementById('autofill-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('autofill-btn');
+  const statusEl = document.getElementById('autofill-status');
+
+  btn.disabled = true;
+  btn.textContent = 'Filling…';
+  statusEl.innerHTML = '';
+
+  try {
+    const { serverUrl } = await chrome.storage.local.get(['serverUrl']);
+    const base = (serverUrl || DEFAULT_SERVER).replace(/\/$/, '');
+
+    const res = await fetch(`${base}/api/profile`);
+    if (!res.ok) throw new Error(`Could not load profile (${res.status}). Make sure the server is running.`);
+    const profile = await res.json();
+
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) throw new Error('No active tab found.');
+
+    chrome.tabs.sendMessage(tab.id, { action: 'autofill', profile }, (resp) => {
+      btn.disabled = false;
+      btn.textContent = 'Autofill Form Fields';
+
+      if (chrome.runtime.lastError || !resp) {
+        showStatus('autofill-status', 'Could not reach the page. Try reloading the tab.', 'error');
+        return;
+      }
+      const n = resp.filled || 0;
+      if (n > 0) {
+        showStatus('autofill-status', `Filled ${n} field${n !== 1 ? 's' : ''}!`, 'success');
+        // Update stats
+        chrome.storage.local.get(['stats']).then(({ stats = {} }) => {
+          stats.formsAutofilled = (stats.formsAutofilled || 0) + 1;
+          chrome.storage.local.set({ stats });
+        });
+      } else {
+        showStatus('autofill-status', 'No matching fields found on this page.', 'error');
+      }
+    });
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Autofill Form Fields';
+    showStatus('autofill-status', escHtml(err.message), 'error');
+  }
+});
+
 // ── Server settings ───────────────────────────────────────────────────────────
 
 document.getElementById('saveServer').addEventListener('click', async () => {

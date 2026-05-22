@@ -1,0 +1,75 @@
+{
+  "personal": {
+    "first_name": "Shane",
+    "last_name": "Smith",
+    "full_name": "Shane Smith",
+    "email": "shane.l.smith24@gmail.com",
+    "phone": "9374993269",
+    "phone_formatted": "937-499-3269",
+    "address": "4947 Western Hills Avenue",
+    "city": "Cincinnati",
+    "state": "OH",
+    "state_full": "Ohio",
+    "zip": "45238",
+    "country": "United States of America",
+    "linkedin": "",
+    "website": ""
+  },
+  "work_authorization": {
+    "authorized_to_work_us": true,
+    "requires_sponsorship": false,
+    "sponsorship_answer": "No",
+    "work_auth_answer": "Yes"
+  },
+  "employment": {
+    "desired_job_type": "Full-time",
+    "available_start_date": "Immediately",
+    "willing_to_relocate": false,
+    "willing_to_relocate_answer": "No",
+    "can_travel": false,
+    "can_travel_answer": "No"
+  },
+  "compensation": {
+    "minimum_salary": "100000",
+    "maximum_salary": "120000",
+    "desired_salary": "100000",
+    "salary_expectation": "100000",
+    "salary_expectation_range": "$100,000 - $120,000",
+    "pay_type": "Annual"
+  },
+  "veteran_status": {
+    "is_protected_veteran": false,
+    "veteran_answer": "I am not a protected veteran",
+    "veteran_answer_short": "No"
+  },
+  "disability": {
+    "has_disability": false,
+    "disability_answer": "No, I Don't Have a Disability",
+    "disability_answer_short": "No"
+  },
+  "demographics": {
+    "gender": "Male",
+    "gender_identity": "Male",
+    "ethnicity": "White (Not Hispanic or Latino)",
+    "race": "White",
+    "hispanic_or_latino": false,
+    "hispanic_answer": "No, not Hispanic or Latino"
+  },
+  "questionnaire_defaults": {
+    "previously_employed_here": false,
+    "previously_employed_answer": "No",
+    "have_referral": false,
+    "referral_source": "LinkedIn",
+    "highest_education": "Bachelor's Degree",
+    "over_18": true,
+    "over_18_answer": "Yes",
+    "legal_right_to_work": true,
+    "legal_right_answer": "Yes",
+    "background_check_consent": true,
+    "background_check_answer": "Yes",
+    "drug_test_consent": true,
+    "drug_test_answer": "Yes",
+    "non_compete_agreement": false,
+    "non_compete_answer": "No"
+  }
+}

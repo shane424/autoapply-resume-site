@@ -142,6 +142,11 @@
 
     .pdf-note { font-size: 11px; color: #888; text-align: center; margin-top: 6px; }
 
+    /* Autofill button */
+    .btn-autofill { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; }
+    .btn-autofill:hover:not(:disabled) { opacity: 0.9; }
+    .autofill-divider { text-align: center; font-size: 11px; color: #aaa; margin: 12px 0 8px; border-top: 1px solid #eee; padding-top: 10px; }
+
     /* Server settings collapsible */
     .server-details { margin-top: 14px; border-top: 1px solid #eee; padding-top: 12px; }
     .server-details summary {
@@ -219,6 +224,10 @@
     <div class="tailor-loading" id="tailor-loading">Tailoring resume… ~20–30s</div>
 
     <div id="tailor-result"></div>
+
+    <div class="autofill-divider">On an application form?</div>
+    <button class="btn btn-autofill" id="autofill-btn">Autofill Form Fields</button>
+    <div id="autofill-status"></div>
 
     <details class="server-details">
       <summary>Server settings</summary>
