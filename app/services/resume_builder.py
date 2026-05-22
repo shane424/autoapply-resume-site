@@ -221,7 +221,7 @@ def build_resume(
                 company_slug = _safe_filename(clean_company).lower()
                 folder = f"{company_slug}_{date_str}"
             else:
-                folder = f"{date_str}_{time_str}"   # e.g. 5132026_0751
+                folder = f"{date_str}_{time_str}"
             dest_dir = Path(settings.output_dir) / folder
             dest_dir.mkdir(parents=True, exist_ok=True)
             out_pdf  = dest_dir / f"{stem}.pdf"
@@ -230,9 +230,13 @@ def build_resume(
             shutil.copy2(docx_path, out_docx)
             content.pdf_path  = str(out_pdf)
             content.docx_path = str(out_docx)
+            print(f"[resume_builder] Saved to: {out_pdf}")
         except Exception as e:
             import traceback
             print(f"[resume_builder] ERROR copying to output_dir '{settings.output_dir}': {e}")
             traceback.print_exc()
+            print(f"[resume_builder] File is available at fallback path: {pdf_path}")
+    else:
+        print(f"[resume_builder] output_dir not set — file at: {pdf_path}")
 
     return content

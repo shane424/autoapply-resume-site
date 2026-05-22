@@ -130,7 +130,7 @@ document.getElementById('tailor-btn').addEventListener('click', async () => {
         ${kws ? `<div class="kw-chips">${kws}</div>` : ''}
         <button id="copy-resume-btn" class="btn btn-primary">Copy Resume Text</button>
         ${data.cover_letter ? '<button id="copy-cover-btn" class="btn btn-outline">Copy Cover Letter</button>' : ''}
-        ${data.pdf_path ? '<p class="pdf-note">PDF saved to your Documents folder</p>' : ''}
+        ${data.pdf_path ? `<p class="pdf-note" title="${escHtml(data.pdf_path)}">📄 ${escHtml(data.pdf_path.split(/[\\/]/).slice(-2).join('\\'))}</p>` : ''}
       </div>`;
 
     document.getElementById('copy-resume-btn').addEventListener('click', () => {
