@@ -31,7 +31,7 @@ _STOP = {
 }
 
 
-def _ats_score(job_description: str, resume_text: str, top_n: int = 50) -> tuple[int, list[str], list[str]]:
+def _ats_score(job_description: str, resume_text: str, top_n: int = 40) -> tuple[int, list[str], list[str]]:
     """Return (score 0-100, matched keywords, missing keywords) for the top_n JD keywords."""
     # Normalize common aliases so postgres == postgresql, etc.
     _aliases = {
