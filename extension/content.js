@@ -24,7 +24,9 @@ function detectJobPage() {
     'weworkremotely.com', 'remoteok.io', 'remoteok.com', 'remotejobs.com',
     'wellfound.com', 'greenhouse.io', 'lever.co', 'workable.com',
     'smartrecruiters.com', 'bamboohr.com', 'jobvite.com', 'icims.com',
-    'ashbyhq.com', 'rippling.com',
+    'ashbyhq.com', 'rippling.com', 'myworkdayjobs.com', 'workday.com',
+    'jobs.lever.co', 'apply.workable.com', 'boards.greenhouse.io',
+    'jobs.ashbyhq.com', 'job.icims.com',
   ];
   jobBoardDomains.forEach(domain => { if (hostname.includes(domain)) jobScore += 10; });
 
@@ -124,28 +126,84 @@ function extractJobInfo(site) {
       if (el?.innerText) { jobData.location = el.innerText.trim(); break; }
     }
 
-    const descCandidates = [
-      document.querySelector('[class*="description" i]'),
-      document.querySelector('[class*="job-detail" i]'),
-      document.querySelector('[id*="description" i]'),
-      document.querySelector('article'),
-      document.querySelector('main'),
+    // Site-specific selectors first — most precise
+    const siteDescSelectors = [
+      // Workday
+      '[data-automation-id="jobPostingDescription"]',
+      // LinkedIn
+      '.jobs-description__content .jobs-box__html-content',
+      '.jobs-description-content__text',
+      // Indeed
+      '#jobDescriptionText',
+      '.jobsearch-jobDescriptionText',
+      // Greenhouse
+      '#content .posting',
+      '#app_body .posting',
+      // Lever
+      '.posting-description',
+      // Ashby
+      '[class*="JobDescription_description"]',
+      '[class*="jobDescription"]',
+      // Glassdoor
+      '[data-test="jobDescriptionText"]',
+      '[class*="JobDetails_jobDescription"]',
+      // SmartRecruiters
+      '.job-description',
+      // Workable
+      '[data-ui="job-description"]',
+      // Rippling
+      '[class*="jobDescription"]',
+      // BambooHR
+      '#BambooHR-ATS',
+      // iCIMS
+      '#job-content',
+      // Generic ATS patterns
+      '[class*="job-desc" i]',
+      '[id*="job-desc" i]',
+      '[class*="jobDesc" i]',
+      '[class*="position-description" i]',
+      '[class*="role-description" i]',
     ];
-    for (const el of descCandidates) {
-      if (el?.innerText?.length > 200) { jobData.description = el.innerText.trim(); break; }
+    for (const sel of siteDescSelectors) {
+      try {
+        const el = document.querySelector(sel);
+        if (el?.innerText?.length > 200) { jobData.description = el.innerText.trim(); break; }
+      } catch {}
     }
 
+    // Generic fallback — prefer elements that look like JD prose (low link density)
     if (!jobData.description) {
-      let best = { el: null, len: 0 };
+      const genericCandidates = [
+        document.querySelector('[class*="description" i]'),
+        document.querySelector('[class*="job-detail" i]'),
+        document.querySelector('[id*="description" i]'),
+        document.querySelector('article'),
+      ];
+      for (const el of genericCandidates) {
+        if (el?.innerText?.length > 200) { jobData.description = el.innerText.trim(); break; }
+      }
+    }
+
+    // Last resort: find the largest block with low link density
+    // (nav/sidebar elements have many links relative to text length)
+    if (!jobData.description) {
+      let best = { el: null, score: 0 };
       document.querySelectorAll('div, section, article').forEach(el => {
-        const len = (el.innerText || '').length;
-        if (len > best.len && len > 200) best = { el, len };
+        const text = (el.innerText || '');
+        const len = text.length;
+        if (len < 300) return;
+        const links = el.querySelectorAll('a').length;
+        const linkDensity = links / (len / 100); // links per 100 chars
+        if (linkDensity > 2) return; // skip nav/sidebar heavy elements
+        const score = len * (1 - Math.min(linkDensity / 2, 0.9));
+        if (score > best.score) best = { el, score };
       });
       if (best.el) jobData.description = best.el.innerText.trim();
     }
 
-    if (jobData.title.length > 200)   jobData.title   = jobData.title.substring(0, 200);
-    if (jobData.company.length > 100) jobData.company = jobData.company.substring(0, 100);
+    if (jobData.title.length > 200)        jobData.title       = jobData.title.substring(0, 200);
+    if (jobData.company.length > 100)      jobData.company     = jobData.company.substring(0, 100);
+    if (jobData.description.length > 8000) jobData.description = jobData.description.substring(0, 8000);
   } catch (err) {
     console.error('AutoApply: Error extracting job info:', err);
   }
