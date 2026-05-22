@@ -192,7 +192,8 @@ def build_resume(
 
     contact = original_resume.contact
     name = contact.get("name", "")
-    stem = _safe_filename(name) if name else "Resume"  # e.g. "Shane_Smith"
+    # Title-case handles all-caps PDF names: "SHANE SMITH" → "Shane_Smith"
+    stem = _safe_filename(name.title()) if name else "Resume"
 
     docx_path = job_dir / f"{stem}.docx"
     _build_docx(content, contact, docx_path)
@@ -230,6 +231,8 @@ def build_resume(
             content.pdf_path  = str(out_pdf)
             content.docx_path = str(out_docx)
         except Exception as e:
-            print(f"[resume_builder] Warning: could not copy to output_dir: {e}")
+            import traceback
+            print(f"[resume_builder] ERROR copying to output_dir '{settings.output_dir}': {e}")
+            traceback.print_exc()
 
     return content
