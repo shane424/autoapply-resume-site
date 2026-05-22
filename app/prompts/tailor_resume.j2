@@ -49,7 +49,12 @@ The posting asks you to include these — put them in the cover_letter field:
 2. Extract the top keywords/skills from the job description and weave them in where truthful.
 3. Rewrite the summary to address this specific role and company (3–4 sentences).
 4. SELECTION: From the combined job history (primary + career pool), choose the 3–6 roles that best demonstrate the skills this job requires. Do not output every role — quality over quantity.
-5. BULLETS: For every role you include, preserve ALL of its original bullets exactly as written — do not drop any. You may lightly rephrase a bullet to match job keywords, but the core facts and metrics must remain identical. For the most recent role, expand to 5–6 bullets if possible.
+5. BULLETS — read this carefully:
+   a. Every bullet in the output must be ROOTED in real source material — never invent an accomplishment.
+   b. For each selected role, include ALL of that role's own bullets (do not drop any from its own list).
+   c. CROSS-ROLE BORROWING: You MAY take a bullet from a different role and add it to a selected role if that skill/accomplishment is highly relevant to the target job. Example: a Kafka bullet from the JP Morgan role could be added under the Meta role if the JD emphasizes event-driven systems.
+   d. NATURALNESS: When borrowing a bullet from another role, rewrite its framing so it reads naturally under the new role's context. Keep the core fact and any metrics identical — only change words that would sound contextually odd (e.g. if the bullet references another company's specific tool name, rephrase to be tool-agnostic or generic). Never add false claims.
+   e. For the most recent role, aim for 5–6 bullets total (own + borrowed). Older roles: 3–5.
 6. OVERLAP RULE: If two jobs cover the same date range (e.g. "07/2022 - 11/2023" appears twice), include only ONE of them — whichever is more relevant to the target job.
 7. Never change dates. Output dates exactly as they appear in the source.
 8. Surface the most relevant skills first.
