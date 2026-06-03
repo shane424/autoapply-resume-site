@@ -29,57 +29,66 @@ def _mm(mm: float) -> float:
 def _build_pdf(content: TailoredResumeContent, contact: dict, out_path: Path) -> None:
     """Build a clean PDF resume using reportlab (pure Python, no system deps)."""
     from reportlab.lib.pagesizes import letter
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.units import inch
     from reportlab.lib import colors
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+
+    NAVY   = colors.HexColor("#1B3A5C")
+    GRAY   = colors.HexColor("#555555")
+    BLACK  = colors.HexColor("#111111")
 
     doc = SimpleDocTemplate(
         str(out_path),
         pagesize=letter,
         leftMargin=inch * 0.75,
         rightMargin=inch * 0.75,
-        topMargin=inch * 0.6,
-        bottomMargin=inch * 0.6,
+        topMargin=inch * 0.55,
+        bottomMargin=inch * 0.55,
     )
 
-    styles = getSampleStyleSheet()
+    # Page width available for content
+    page_w = letter[0] - inch * 1.5
 
     name_style = ParagraphStyle(
-        "Name", fontSize=18, fontName="Helvetica-Bold",
-        alignment=1, spaceAfter=4,
+        "Name", fontSize=22, fontName="Helvetica-Bold",
+        alignment=1, textColor=BLACK, spaceAfter=3,
     )
     contact_style = ParagraphStyle(
         "Contact", fontSize=9, fontName="Helvetica",
-        alignment=1, textColor=colors.HexColor("#444444"), spaceAfter=8,
+        alignment=1, textColor=GRAY, spaceAfter=10,
     )
     section_style = ParagraphStyle(
-        "Section", fontSize=11, fontName="Helvetica-Bold",
-        textColor=colors.HexColor("#111111"), spaceBefore=10, spaceAfter=2,
+        "Section", fontSize=10, fontName="Helvetica-Bold",
+        textColor=NAVY, spaceBefore=12, spaceAfter=2, tracking=60,
     )
     body_style = ParagraphStyle(
         "Body", fontSize=10, fontName="Helvetica",
-        leading=14, spaceAfter=3,
+        leading=14, spaceAfter=4, textColor=BLACK,
     )
     bullet_style = ParagraphStyle(
-        "Bullet", fontSize=10, fontName="Helvetica",
-        leading=13, leftIndent=14, bulletIndent=4, spaceAfter=1,
+        "Bullet", fontSize=9.5, fontName="Helvetica",
+        leading=13, leftIndent=16, firstLineIndent=-10,
+        spaceAfter=2, textColor=BLACK,
     )
     job_title_style = ParagraphStyle(
-        "JobTitle", fontSize=10, fontName="Helvetica-Bold",
-        spaceAfter=1,
+        "JobTitle", fontSize=10.5, fontName="Helvetica-Bold",
+        textColor=BLACK, spaceAfter=0, spaceBefore=4,
     )
-    job_meta_style = ParagraphStyle(
-        "JobMeta", fontSize=9, fontName="Helvetica-Oblique",
-        textColor=colors.HexColor("#555555"), spaceAfter=2,
+    dates_style = ParagraphStyle(
+        "Dates", fontSize=9.5, fontName="Helvetica",
+        textColor=GRAY, alignment=2,  # right-aligned
+    )
+    company_style = ParagraphStyle(
+        "Company", fontSize=9.5, fontName="Helvetica-Oblique",
+        textColor=GRAY, spaceAfter=3,
     )
 
-    def _hr():
-        # Table-based horizontal rule — avoids HRFlowable Windows bug
-        t = Table([[""]], colWidths=["100%"])
+    def _hr(color=NAVY, thickness=0.75):
+        t = Table([[""]], colWidths=[page_w])
         t.setStyle(TableStyle([
-            ("LINEBELOW", (0, 0), (-1, -1), 0.75, colors.HexColor("#333333")),
-            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("LINEBELOW", (0, 0), (-1, -1), thickness, color),
+            ("TOPPADDING",    (0, 0), (-1, -1), 0),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
         ]))
         return t
@@ -87,44 +96,60 @@ def _build_pdf(content: TailoredResumeContent, contact: dict, out_path: Path) ->
     def section(title: str) -> list:
         return [Paragraph(title.upper(), section_style), _hr()]
 
+    def exp_header(title: str, dates: str) -> Table:
+        # Job title left, dates right on same line
+        row = [[Paragraph(title, job_title_style), Paragraph(dates, dates_style)]]
+        t = Table(row, colWidths=[page_w * 0.72, page_w * 0.28])
+        t.setStyle(TableStyle([
+            ("VALIGN",        (0, 0), (-1, -1), "BOTTOM"),
+            ("TOPPADDING",    (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
+        ]))
+        return t
+
     story = []
 
-    # Name
+    # ── Header ────────────────────────────────────────────────────────────────
     name = contact.get("name", "")
     if name:
-        story.append(Paragraph(name, name_style))
+        story.append(Paragraph(name.upper(), name_style))
 
-    # Contact
     contact_parts = [v for k, v in contact.items() if k != "name" and v]
     if contact_parts:
-        story.append(Paragraph(" · ".join(contact_parts), contact_style))
+        story.append(Paragraph("  ·  ".join(contact_parts), contact_style))
 
-    # Summary
+    # Thin navy rule under header
+    story.append(_hr(color=NAVY, thickness=1.0))
+    story.append(Spacer(1, 4))
+
+    # ── Summary ───────────────────────────────────────────────────────────────
     if content.summary:
         story += section("Summary")
         story.append(Paragraph(content.summary, body_style))
 
-    # Skills
+    # ── Skills ────────────────────────────────────────────────────────────────
     if content.skills:
         story += section("Skills & Technologies")
-        story.append(Paragraph(" · ".join(content.skills), body_style))
+        story.append(Paragraph("  ·  ".join(content.skills), body_style))
 
-    # Experience
+    # ── Experience ────────────────────────────────────────────────────────────
     if content.experience:
         story += section("Work Experience")
         for exp in content.experience:
-            story.append(Paragraph(exp.title, job_title_style))
-            story.append(Paragraph(f"{exp.company}  —  {exp.dates}", job_meta_style))
+            story.append(exp_header(exp.title, exp.dates))
+            story.append(Paragraph(exp.company, company_style))
             for bullet in exp.bullets:
-                story.append(Paragraph(f"• {bullet}", bullet_style))
-            story.append(Spacer(1, 4))
+                story.append(Paragraph(f"•  {bullet}", bullet_style))
+            story.append(Spacer(1, 3))
 
-    # Education
+    # ── Education ─────────────────────────────────────────────────────────────
     if content.education:
         story += section("Education")
         for edu in content.education:
-            story.append(Paragraph(edu.degree, job_title_style))
-            story.append(Paragraph(f"{edu.school}  —  {edu.year}", job_meta_style))
+            story.append(exp_header(edu.degree, edu.year))
+            story.append(Paragraph(edu.school, company_style))
 
     doc.build(story)
 
