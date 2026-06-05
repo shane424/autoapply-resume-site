@@ -116,7 +116,7 @@ def _build_pdf(content: TailoredResumeContent, contact: dict, out_path: Path) ->
     name = contact.get("name", "")
     if name:
         story.append(Paragraph(name.upper(), name_style))
-        story.append(Spacer(1, 4))
+        story.append(Spacer(1, 10))
 
     contact_parts = [v for k, v in contact.items() if k != "name" and v]
     if contact_parts:
