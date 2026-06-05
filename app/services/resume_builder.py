@@ -56,11 +56,11 @@ def _build_pdf(content: TailoredResumeContent, contact: dict, out_path: Path) ->
     )
     contact_style = ParagraphStyle(
         "Contact", fontSize=9, fontName="Helvetica",
-        alignment=1, textColor=GRAY, spaceAfter=10,
+        alignment=1, textColor=GRAY, spaceAfter=0,
     )
     section_style = ParagraphStyle(
         "Section", fontSize=10, fontName="Helvetica-Bold",
-        textColor=NAVY, spaceBefore=12, spaceAfter=2, tracking=60,
+        textColor=NAVY, spaceBefore=12, spaceAfter=0, tracking=60,
     )
     body_style = ParagraphStyle(
         "Body", fontSize=10, fontName="Helvetica",
@@ -89,12 +89,13 @@ def _build_pdf(content: TailoredResumeContent, contact: dict, out_path: Path) ->
         t.setStyle(TableStyle([
             ("LINEBELOW", (0, 0), (-1, -1), thickness, color),
             ("TOPPADDING",    (0, 0), (-1, -1), 0),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
         ]))
         return t
 
     def section(title: str) -> list:
-        return [Paragraph(title.upper(), section_style), _hr()]
+        # Spacer before rule — spaceAfter on Paragraph is ignored before a Table
+        return [Paragraph(title.upper(), section_style), Spacer(1, 3), _hr(), Spacer(1, 5)]
 
     def exp_header(title: str, dates: str) -> Table:
         # Job title left, dates right on same line
@@ -120,9 +121,11 @@ def _build_pdf(content: TailoredResumeContent, contact: dict, out_path: Path) ->
     if contact_parts:
         story.append(Paragraph("  ·  ".join(contact_parts), contact_style))
 
-    # Thin navy rule under header
+    # Thin navy rule under header — explicit spacers needed because reportlab
+    # ignores paragraph spaceAfter when the next element is a Table
+    story.append(Spacer(1, 6))
     story.append(_hr(color=NAVY, thickness=1.0))
-    story.append(Spacer(1, 4))
+    story.append(Spacer(1, 8))
 
     # ── Summary ───────────────────────────────────────────────────────────────
     if content.summary:
