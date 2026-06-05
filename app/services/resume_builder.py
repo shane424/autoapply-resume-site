@@ -52,7 +52,7 @@ def _build_pdf(content: TailoredResumeContent, contact: dict, out_path: Path) ->
 
     name_style = ParagraphStyle(
         "Name", fontSize=22, fontName="Helvetica-Bold",
-        alignment=1, textColor=BLACK, spaceAfter=3,
+        alignment=1, textColor=BLACK, spaceAfter=0,
     )
     contact_style = ParagraphStyle(
         "Contact", fontSize=9, fontName="Helvetica",
@@ -116,6 +116,7 @@ def _build_pdf(content: TailoredResumeContent, contact: dict, out_path: Path) ->
     name = contact.get("name", "")
     if name:
         story.append(Paragraph(name.upper(), name_style))
+        story.append(Spacer(1, 4))
 
     contact_parts = [v for k, v in contact.items() if k != "name" and v]
     if contact_parts:
