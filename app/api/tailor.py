@@ -28,6 +28,14 @@ _STOP = {
     "role","position","job","opportunity","looking","great","good","well",
     "new","high","key","make","build","ensure","provide","support","manage",
     "part","play","based","day","per","ability","skills","skill","knowledge",
+    # Job listing boilerplate
+    "ago","easy","apply","applicants","applicant","posted","posting","remote",
+    "hybrid","onsite","location","united","states","weeks","week","days","hours",
+    "full","time","part","contract","permanent","salary","benefits","equal",
+    "employer","opportunity","get","see","view","click","here","back","next",
+    "save","share","report","similar","jobs","people","company","employees",
+    "linkedin","glassdoor","indeed","ziprecruiter","today","ago","level","type",
+    "number","many","very","often","always","never","yes","no","etc","via",
 }
 
 
@@ -43,8 +51,8 @@ def _ats_score(job_description: str, resume_text: str, top_n: int = 40) -> tuple
     def _norm(w: str) -> str:
         return _aliases.get(w, w)
 
-    tokens = re.findall(r"\b[a-zA-Z][a-zA-Z0-9#+.\-]{1,}\b", job_description.lower())
-    freq = Counter(_norm(t) for t in tokens if t not in _STOP)
+    tokens = re.findall(r"\b[a-zA-Z][a-zA-Z0-9#+.\-]{2,}\b", job_description.lower())
+    freq = Counter(_norm(t) for t in tokens if t not in _STOP and len(t) >= 3)
     words = [_norm(w) for w in job_description.lower().split()]
     bigrams = [
         f"{words[i]} {words[i+1]}"

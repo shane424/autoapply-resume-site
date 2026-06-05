@@ -60,11 +60,11 @@ def _build_pdf(content: TailoredResumeContent, contact: dict, out_path: Path) ->
     )
     section_style = ParagraphStyle(
         "Section", fontSize=10, fontName="Helvetica-Bold",
-        textColor=NAVY, spaceBefore=12, spaceAfter=0, tracking=60,
+        textColor=NAVY, spaceBefore=8, spaceAfter=0, tracking=60,
     )
     body_style = ParagraphStyle(
         "Body", fontSize=10, fontName="Helvetica",
-        leading=14, spaceAfter=4, textColor=BLACK,
+        leading=14, spaceAfter=2, textColor=BLACK,
     )
     bullet_style = ParagraphStyle(
         "Bullet", fontSize=9.5, fontName="Helvetica",
@@ -95,7 +95,7 @@ def _build_pdf(content: TailoredResumeContent, contact: dict, out_path: Path) ->
 
     def section(title: str) -> list:
         # Spacer before rule — spaceAfter on Paragraph is ignored before a Table
-        return [Paragraph(title.upper(), section_style), Spacer(1, 3), _hr(), Spacer(1, 5)]
+        return [Paragraph(title.upper(), section_style), Spacer(1, 2), _hr(), Spacer(1, 4)]
 
     def exp_header(title: str, dates: str) -> Table:
         # Job title left, dates right on same line
@@ -146,7 +146,7 @@ def _build_pdf(content: TailoredResumeContent, contact: dict, out_path: Path) ->
             story.append(Paragraph(exp.company, company_style))
             for bullet in exp.bullets:
                 story.append(Paragraph(f"•  {bullet}", bullet_style))
-            story.append(Spacer(1, 3))
+            story.append(Spacer(1, 2))
 
     # ── Education ─────────────────────────────────────────────────────────────
     if content.education:
