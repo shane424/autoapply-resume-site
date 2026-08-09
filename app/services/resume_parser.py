@@ -112,9 +112,11 @@ def _extract_contact(header_lines: list[str]) -> dict:
     return contact
 
 
-# Matches date ranges like "11/2024 - 11/2025", "Jan 2020 - Present", "2018 - 2020"
+# Matches date ranges like "04/2024 - Present", "Jan 2020 - Present", "2018 - 2020", "11/2018 - 07/2020"
 DATE_RANGE_RE = re.compile(
-    r"(\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?\s*\d{4}\s*[-–]\s*(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?\s*(?:\d{4}|present|current)|\d{2}/\d{4}\s*[-–]\s*\d{2}/\d{4})",
+    r"(\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?\.?\s*(?:\d{1,2}[/\-])?\d{4}"
+    r"\s*[-–]\s*"
+    r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?\.?\s*(?:(?:\d{1,2}[/\-])?\d{4}|present|current))",
     re.IGNORECASE,
 )
 BULLET_RE = re.compile(r"^[\s]*[•●\-\*–]\s*")
