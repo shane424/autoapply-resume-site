@@ -112,7 +112,7 @@ def _build_pdf(content: TailoredResumeContent, contact: dict, out_path: Path) ->
 
     story = []
 
-    # ── Header ────────────────────────────────────────────────────────────────
+    # ── Header ──────────────────────────────────────────────────────────────────────────
     name = contact.get("name", "")
     if name:
         story.append(Paragraph(name.upper(), name_style))
@@ -128,17 +128,17 @@ def _build_pdf(content: TailoredResumeContent, contact: dict, out_path: Path) ->
     story.append(_hr(color=NAVY, thickness=1.0))
     story.append(Spacer(1, 8))
 
-    # ── Summary ───────────────────────────────────────────────────────────────
+    # ── Summary ─────────────────────────────────────────────────────────────────────────
     if content.summary:
         story += section("Summary")
         story.append(Paragraph(content.summary, body_style))
 
-    # ── Skills ────────────────────────────────────────────────────────────────
+    # ── Skills ──────────────────────────────────────────────────────────────────────────
     if content.skills:
         story += section("Skills & Technologies")
         story.append(Paragraph("  ·  ".join(content.skills), body_style))
 
-    # ── Experience ────────────────────────────────────────────────────────────
+    # ── Experience ────────────────────────────────────────────────────────────────────────
     if content.experience:
         story += section("Work Experience")
         for exp in content.experience:
@@ -148,7 +148,7 @@ def _build_pdf(content: TailoredResumeContent, contact: dict, out_path: Path) ->
                 story.append(Paragraph(f"•  {bullet}", bullet_style))
             story.append(Spacer(1, 2))
 
-    # ── Education ─────────────────────────────────────────────────────────────
+    # ── Education ─────────────────────────────────────────────────────────────────────────
     if content.education:
         story += section("Education")
         for edu in content.education:
@@ -216,7 +216,19 @@ def build_resume(
     from app.config import load_app_settings, env_settings
     from datetime import datetime
 
-    job_dir = STORAGE_DIR / content.job_id
+    today = datetime.now()
+    date_str = f"{today.month}{today.day:02d}{today.year}"
+    time_str = f"{today.hour:02d}{today.minute:02d}"
+    _generic = {"unknown company", "unknown", "unknown position", ""}
+
+    clean_company = (job_company or "").strip()
+    if clean_company.lower() not in _generic:
+        company_slug = _safe_filename(clean_company).lower()
+        folder_name = f"{company_slug}_{date_str}"
+    else:
+        folder_name = f"{date_str}_{time_str}"
+
+    job_dir = STORAGE_DIR / folder_name
     job_dir.mkdir(parents=True, exist_ok=True)
 
     contact = original_resume.contact
@@ -246,18 +258,8 @@ def build_resume(
     settings = load_app_settings()
     resolved_output_dir = env_settings.output_dir.strip() or settings.output_dir.strip()
     if resolved_output_dir:
-        today = datetime.now()
-        date_str   = f"{today.month}{today.day:02d}{today.year}"
-        time_str   = f"{today.hour:02d}{today.minute:02d}"
-        _generic = {"unknown company", "unknown", "unknown position", ""}
         try:
-            clean_company = (job_company or "").strip()
-            if clean_company.lower() not in _generic:
-                company_slug = _safe_filename(clean_company).lower()
-                folder = f"{company_slug}_{date_str}"
-            else:
-                folder = f"{date_str}_{time_str}"
-            dest_dir = Path(resolved_output_dir) / folder
+            dest_dir = Path(resolved_output_dir) / folder_name
             dest_dir.mkdir(parents=True, exist_ok=True)
             out_pdf  = dest_dir / f"{stem}.pdf"
             out_docx = dest_dir / f"{stem}.docx"
